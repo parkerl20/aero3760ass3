@@ -1,3 +1,6 @@
+"""WARNING: This module is deprecated
+"""
+
 from spacesim import orbit as orb
 from spacesim import orbital_transforms as ot
 from spacesim import celestial_body as cb

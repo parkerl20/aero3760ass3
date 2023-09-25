@@ -85,25 +85,3 @@ def herrick_gibbs(
     v2 = -A * r1 + B * r2 + C * r3
     
     return v2.reshape(3,1)
-    
-    
-
-if __name__ == "__main__":
-    from spacesim import constants as const
-    r1 = np.array([[-4036.39024968, -1283.00774237, -5371.32144987]], dtype=np.float64).T
-    r2 = np.array([[-3870.33066615, -1688.0824012,  -5322.30251991] ], dtype=np.float64).T
-    r3 = np.array([[-3722.74717789, -2048.92475439, -5310.92844261]], dtype=np.float64).T
-    
-    t_1 = 2.9412000000000003
-    t_2 = 3.0 
-    t_3 = 3.0588
-
-    
-    obv1 = (r1, t_1)
-    obv2 = (r2, t_2)
-    obv3 = (r3, t_3)
-    
-    # v2 = gibbs(r1, r2, r3, const.MU_EARTH)
-    v2 = herrick_gibbs(obv1, obv2, obv3, const.MU_EARTH)
-    print(v2)
-    
