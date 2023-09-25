@@ -72,7 +72,8 @@ class SystemPlotter():
         *,
         t_start: float = 0,
         use_km: bool = False,
-        max_step: float = 20
+        max_step: float = 20,
+        analytical: bool = False
     ) -> pv.Plotter:
         """Plots the orbital system in 3D.
 
@@ -88,7 +89,14 @@ class SystemPlotter():
         
         # Plot orbits
         for orbit in self.system.orbits:
-            r, _, _ = orbit.propagate(t, t_start, use_km, max_step=max_step)
+            r, _, _ = orbit.propagate(
+                t,
+                t_start=t_start,
+                use_km=use_km,
+                max_step=max_step,
+                analytical=analytical
+            )
+            
             trajectory = pv.Spline(r.T)   # Splines for 3D lines
             system_pl.add_mesh(trajectory, color=orbit.colour, line_width=2, label=orbit.name)
         
