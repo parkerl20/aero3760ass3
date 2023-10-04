@@ -1,10 +1,12 @@
 from spacesim import orbital_system as os
 from spacesim import celestial_body as cb
 from spacesim import orbit as orb
+from spacesim import orbital_transforms as ot
 
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 from matplotlib import patches
+import numpy as np
 import matplotlib.pyplot as plt
 import pyvista as pv
 import warnings
@@ -116,4 +118,44 @@ class SystemPlotter():
             t_start (float, optional): The start time of the plot. Defaults to 0.
             map_img (str, optional): The path to the map image to use. Defaults to None.
         """
-        pass
+        # Set up figure
+        track_fig = plt.figure("Groundtracks")
+        track_ax = track_fig.add_subplot()
+        
+        if map_img is not None:
+            img = plt.imread(map_img)
+            track_ax.imshow(img, extent=[-180, 180, -90, 90])
+        
+        x_ticks = [-180 + x for x in range(0, 380, 30)]
+        y_ticks = [-90 + x for x in range(0, 195, 30)]
+        
+        track_ax.set_xlabel("Longitude", fontname="Times New Roman", fontweight="bold", fontsize=12)
+        track_ax.set_ylabel("Latitude", fontname="Times New Roman", fontweight="bold", fontsize=12)
+        track_ax.set_xticks(x_ticks)
+        track_ax.set_yticks(y_ticks)
+            
+        track_ax.grid()
+
+        # Add orbits
+        for orbit in self.system.orbits:
+            r_eci, _, t_eci = orbit.propagate(t, t_start=t_start)
+            lat, lng = [], []
+            
+            # Convert eci to lat long
+            for i in range(len(t_eci)):
+                r_ecef = ot.ECI_to_ECEF(r_eci[:, i], t_eci[i], orbit.epoch)
+                lat_i, lng_i, _ = ot.ECEF_to_LLH(r_ecef).flatten()
+                
+                if i > 0 and abs(lng[-1] - lng_i) > 180:
+                    lng.append(np.nan)
+                    lat.append(np.nan)
+                
+                lng.append(lng_i)
+                lat.append(lat_i)
+            
+            track_ax.plot(lng, lat, label=orbit.name, linewidth=0.5)
+        
+        track_ax.legend()
+        track_fig.tight_layout()
+        
+        return track_fig, track_ax

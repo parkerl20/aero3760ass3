@@ -9,6 +9,7 @@ from spacesim import orbit as orb
 
 from pyvista import examples as pv_ex
 import numpy as np
+import matplotlib.pyplot as plt
 
 def perturbation_dynamics(t: float, state_vector: np.ndarray, orbit: orb.Orbit) -> np.ndarray:
     # Satellite dynamics that accounts for perturbations
@@ -107,7 +108,7 @@ def main() -> None:
             tle_line_1 = f.readline().strip()
             tle_line_2 = f.readline().strip()
             
-            satellite = sat.Satellite(name, tle_line_1, tle_line_2, earth, orbit_dynamics=perturbation_dynamics)
+            satellite = sat.Satellite(name, tle_line_1, tle_line_2, earth)
             satellites.append(satellite)
             
             earth_orbital_system.add_orbit(satellite.orbit)
@@ -116,16 +117,23 @@ def main() -> None:
     # ---------------- Plot orbits
     system_plotter = osplt.SystemPlotter(earth_orbital_system)
     
-    earth_pl = system_plotter.plot3d(
-        propagation_time
+    gt_fig, gt_ax = system_plotter.groundtrack(
+        propagation_time,
+        map_img="./rsc/bluemarble.jpg"
     )
     
-    # Add space background
-    cubemap = pv_ex.download_cubemap_space_16k()
-    earth_pl.add_actor(cubemap.to_skybox())
+    plt.show()
+    
+    # earth_pl = system_plotter.plot3d(
+    #     propagation_time
+    # )
+    
+    # # Add space background
+    # cubemap = pv_ex.download_cubemap_space_16k()
+    # earth_pl.add_actor(cubemap.to_skybox())
     
     
-    earth_pl.show()
+    # earth_pl.show()
     
 
     return
