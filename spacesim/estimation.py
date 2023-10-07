@@ -47,7 +47,8 @@ class ExtendedKalmanFilter():
         self,
         measurement: np.ndarray,
         observation_matrix: np.ndarray,
-        f_args: tuple
+        *,
+        f_args: tuple = ()
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Predicts the next state of the system
 
