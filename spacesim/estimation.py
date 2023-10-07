@@ -47,8 +47,7 @@ class ExtendedKalmanFilter():
         self,
         measurement: np.ndarray,
         observation_matrix: np.ndarray,
-        *args,
-        **kwargs
+        f_args: tuple
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Predicts the next state of the system
 
@@ -56,16 +55,14 @@ class ExtendedKalmanFilter():
             measurement (np.ndarray): The measured state of the system
             observation_matrix (np.ndarray): A matrix mapping from 
                 observation space to state space.
-            *args: Additional arguments to pass to the transition 
+            f_args (tuple): Additional arguments to pass to the transition 
                 matrix function.
-            **kwargs: Additional keyword arguments to pass to the 
-                transition matrix function.
 
         Returns:
 			tuple[np.ndarray, np.ndarray, np.ndarray]: The predicted state,
 				the innovation, and the predicted state covariance.
         """
-        trans_mtx = self.transition_matrix_func(*args, **kwargs)					
+        trans_mtx = self.transition_matrix_func(*f_args)					
         
         state_est = trans_mtx @ self.curr_state_est
         est_covar = trans_mtx @ self.est_covar @ trans_mtx.T + self.process_covar
