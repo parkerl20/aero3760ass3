@@ -29,16 +29,15 @@ class ExtendedKalmanFilter():
     """
     def __init__(
         self,
-        transition_matrix_func: Callable[[tuple, dict], np.ndarray],
+        transition_matrix_func: Callable[[any], np.ndarray],
         initial_state: np.ndarray,
-        initial_covariance: np.ndarray,
         process_covariance: np.ndarray,
         observation_covariance: np.ndarray
     ) -> None:
         
         self.transition_matrix_func = transition_matrix_func
         self.curr_state_est = initial_state             # state estimate
-        self.est_covar = initial_covariance         	# estimate covariance
+        self.est_covar = np.eye(initial_state.shape[0]) # state estimate covariance
         self.process_covar = process_covariance         # process covariance
         self.obs_covar = observation_covariance     	# observation covariance
         
