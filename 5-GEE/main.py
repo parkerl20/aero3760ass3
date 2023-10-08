@@ -5,10 +5,13 @@ def main():
     functions.initialise_credentials()
 
     # Sentinel-2A satellite
-    Map = functions.S2A()
+    # Map = functions.S2A()
     
+    # Create map
+    # functions.create_map(Map, "S2A-RGB")
+
     # Show map
-    functions.show_map(Map, "S2A-RGB")
+    functions.show_map("S2A-Infrared")
 
 
 if __name__ == "__main__":
