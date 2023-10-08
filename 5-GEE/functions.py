@@ -92,7 +92,7 @@ def S2A():
    # Sentinel-2A satellite
     dataset = (
         ee.ImageCollection('COPERNICUS/S2_SR')
-        .filterDate('2020-01-01', '2020-01-30')
+        .filterDate('2019-05-01', '2019-07-30')
         # Pre-filter to get less cloudy granules.
         .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
         .map(mask_s2_clouds)

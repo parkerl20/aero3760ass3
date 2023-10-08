@@ -1,3 +1,7 @@
+"""Previous code to read TLE's, plot orbits and plot ground tracks
+
+"""
+
 from spacesim import celestial_body as cb
 from spacesim import satellite as sat
 from spacesim import orbital_system as orbsys
