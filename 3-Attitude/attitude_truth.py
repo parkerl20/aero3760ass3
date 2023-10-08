@@ -14,8 +14,8 @@ def generate_truth_orbit():
     
     # Define the start and end points and the number of values
     start = 0
-    end = 200
-    num_values = 200000
+    end = 2500
+    num_values = 20000
 
     # Generate the linspace
     time_steps = np.linspace(start, end, num_values)
@@ -32,7 +32,7 @@ def generate_truth_orbit():
     theta_3 = np.sin(2.8648 * time_steps)
     
     # Create a figure and axes
-    fig, ax = plt.subplots(figsize=(8, 8))
+    fig1, ax = plt.subplots(figsize=(8, 8))
     ax.plot(theta_2, theta_1, label='Archimedean Spiral', color='b')
     ax.set_title('Satellite Manoeuvre')
     ax.set_xlabel('Yaw (degrees)')
@@ -40,6 +40,24 @@ def generate_truth_orbit():
     ax.legend()
     ax.grid(True)
     ax.axis('equal')
+    
+    # Create a figure with three subplots in one row and three columns
+    fig2, axes = plt.subplots(3, 1, figsize=(9, 3))
+
+    axes[0].plot(time_steps, theta_2, label='Yaw (deg)', color='b')
+    axes[0].set_title('Plot 1')
+    axes[0].legend()
+
+    axes[1].plot(time_steps, theta_1, label='Pitch (deg)', color='g')
+    axes[1].set_title('Plot 2')
+    axes[1].legend()
+
+    axes[2].plot(time_steps, theta_3, label='Roll (deg)', color='r')
+    axes[2].set_title('Plot 3')
+    axes[2].legend()
+
+    # Add a title for the entire figure
+    fig2.suptitle('Three Subplots')
 
     plt.show()
     

@@ -1,3 +1,7 @@
+"""Previous code to read TLE's, plot orbits and plot ground tracks
+
+"""
+
 from spacesim import celestial_body as cb
 from spacesim import satellite as sat
 from spacesim import orbital_system as orbsys
@@ -94,10 +98,10 @@ def main() -> None:
     
     #---------------- Create multiple satellites
     tle_files = [
-        "./rsc/TLE/navstar_43.txt",
-        "./rsc/TLE/navstar_47.txt",
-        "./rsc/TLE/navstar_51.txt",
-        "./rsc/TLE/navstar_52.txt",
+        "1-Orbit/rsc/TLE/navstar_43.txt",
+        "1-Orbit/rsc/TLE/navstar_47.txt",
+        "1-Orbit/rsc/TLE/navstar_51.txt",
+        "1-Orbit/rsc/TLE/navstar_52.txt",
     ]
     
     satellites: list[sat.Satellite] = []
@@ -119,7 +123,7 @@ def main() -> None:
     
     gt_fig, gt_ax = system_plotter.groundtrack(
         propagation_time,
-        map_img="./rsc/bluemarble.jpg"
+        map_img="1-Orbit/rsc/bluemarble.jpg"
     )
     
     plt.show()
