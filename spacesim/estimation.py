@@ -67,11 +67,10 @@ class ExtendedKalmanFilter():
                 [0, 0, 1, 0, 0, 0]
             ])
             
-            # f_args is a tuple with a single element
             state_est, innovation, est_covar = ekf.predict(
                 r,
                 H,
-                f_args=(t,)
+                f_args=(t, r)
             )
 
     ```
