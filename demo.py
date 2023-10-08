@@ -98,10 +98,10 @@ def main() -> None:
     
     #---------------- Create multiple satellites
     tle_files = [
-        "1-Orbit/rsc/TLE/navstar_43.txt",
-        "1-Orbit/rsc/TLE/navstar_47.txt",
-        "1-Orbit/rsc/TLE/navstar_51.txt",
-        "1-Orbit/rsc/TLE/navstar_52.txt",
+        "./rsc/TLE/navstar_43.txt",
+        "./rsc/TLE/navstar_47.txt",
+        "./rsc/TLE/navstar_51.txt",
+        "./rsc/TLE/navstar_52.txt",
     ]
     
     satellites: list[sat.Satellite] = []
@@ -123,7 +123,7 @@ def main() -> None:
     
     gt_fig, gt_ax = system_plotter.groundtrack(
         propagation_time,
-        map_img="1-Orbit/rsc/bluemarble.jpg"
+        map_img="./rsc/bluemarble.jpg"
     )
     
     plt.show()
