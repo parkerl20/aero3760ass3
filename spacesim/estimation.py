@@ -30,6 +30,14 @@ class ExtendedKalmanFilter():
     A basic Kalman filter can also be implemented by having the 
     transition matrix function return a constant matrix.
     
+    Attributes:
+        transition_matrix_func (Callable[[any], np.ndarray]): A function
+            that returns the Kalman transition matrix. The function is 
+            called with the arguments passed to the predict method.
+        curr_state_est (np.ndarray): The current state estimate.
+        est_covar (np.ndarray): The current state estimate covariance.
+        process_covar (np.ndarray): The process covariance.
+    
     Examples:
     ```python 
         def transition_matrix_func(time: float, r: np.ndarry) -> np.ndarray:
@@ -74,21 +82,18 @@ class ExtendedKalmanFilter():
             )
 
     ```
-
     """
     def __init__(
         self,
         transition_matrix_func: Callable[[any], np.ndarray],
         initial_state: np.ndarray,
         process_covariance: np.ndarray,
-        observation_covariance: np.ndarray
     ) -> None:
         
         self.transition_matrix_func = transition_matrix_func
         self.curr_state_est = initial_state             # state estimate
         self.est_covar = np.eye(initial_state.shape[0]) # state estimate covariance
         self.process_covar = process_covariance         # process covariance
-        self.obs_covar = observation_covariance     	# observation covariance
         
         return
     
@@ -96,6 +101,7 @@ class ExtendedKalmanFilter():
         self,
         measurement: np.ndarray,
         observation_matrix: np.ndarray,
+        observation_covariance: np.ndarray,
         *,
         f_args: tuple = ()
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -105,6 +111,8 @@ class ExtendedKalmanFilter():
             measurement (np.ndarray): The measured state of the system
             observation_matrix (np.ndarray): A matrix mapping from 
                 observation space to state space.
+            observation_covariance (np.ndarray): The covariance of the
+                measurement.
             f_args (tuple): Additional arguments to pass to the transition 
                 matrix function.
 
@@ -118,7 +126,7 @@ class ExtendedKalmanFilter():
         est_covar = trans_mtx @ self.est_covar @ trans_mtx.T + self.process_covar
         
         innovation = measurement - observation_matrix @ state_est		# state residual
-        innovation_covar = observation_matrix @ est_covar @ observation_matrix.T + self.obs_covar
+        innovation_covar = observation_matrix @ est_covar @ observation_matrix.T + observation_covariance
         kalman_gain = est_covar @ observation_matrix.T @ np.linalg.inv(innovation_covar)
         
         self.curr_state_est = state_est + kalman_gain @ innovation
