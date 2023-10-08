@@ -3,13 +3,10 @@ import geemap
 import folium
 import webbrowser
 import os
+import functions
 
 # Initialise credentials
-service_account = "spacey@spacey-401400.iam.gserviceaccount.com"
-key_path = "5-GEE/key.json"    
-credentials = ee.ServiceAccountCredentials(service_account, key_path)
-ee.Initialize(credentials=credentials)
-
+functions.initialise_credentials()
 
 # Set some points of interest
 # Mackay, Qld
@@ -40,5 +37,4 @@ visParams = {
 Map.addLayer(percentageOfClearing, visParams, 'Percentage of clearing')
 
 # Show the map
-Map.save('5-GEE/maps/initial_map.html')
-webbrowser.open('file:///' + os.path.realpath('5-GEE/maps/initial_map.html'))
+functions.show_map(Map, "initial_map")
