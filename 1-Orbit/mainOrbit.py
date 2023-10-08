@@ -1,10 +1,7 @@
-import demo
-import spacesim
 import numpy as np
 
 def mainOrbit():
-    # Example of multiple satellite plotting
-    demo.main()
+    # For example of multiple satellite plotting, run demo.py
 
     # General pseudocode for completeing the orbital design processes
     """"
