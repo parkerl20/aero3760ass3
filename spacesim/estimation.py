@@ -25,7 +25,57 @@ def linear_least_squares(
     return np.linalg.inv(H.T @ W @ H) @ H.T @ W @ y
 
 class ExtendedKalmanFilter():
-    """A class implementing a general Extended Kalman Filter
+    """A class implementing a general Extended Kalman Filter.
+    
+    A basic Kalman filter can also be implemented by having the 
+    transition matrix function return a constant matrix.
+    
+    Examples:
+    ```python 
+        def transition_matrix_func(time: float, r: np.ndarry) -> np.ndarray:
+            # A function that returns a time-varying transition matrix
+            x, y, z = r     # unpack into position components
+            # model matrix
+            F = np.array([
+                [0, 0, 0, 1, 0, 0],
+                [0, 0, 0, 0, 1, 0],
+                [0, 0, 0, 0, 0, 1],
+                [x, 0, 0, 0, 0, 0],
+                [0, y, 0, 0, 0, 0],
+                [0, 0, z, 0, 0, 0]
+            ])
+            
+            trans_mtx = np.eye(6) + F * time
+            return trans_mtx
+        
+        ekf = ExtendedKalmanFilter(
+            transition_matrix_func,
+            np.zeros(6,1),
+            np.eye(6),
+            np.eye(3)
+        )
+        
+        measured_positions = [[1, 2, 3], [2, 3, 4], [3, 4, 5], ...]
+        time_stamps = [0, 1, 2, ...]
+        
+        # Estimate the state of a system at each time step
+        for r, t in zip(measured_positions, time_stamps):
+            # observation matrix
+            H = np.array([
+                [1, 0, 0, 0, 0, 0],
+                [0, 1, 0, 0, 0, 0],
+                [0, 0, 1, 0, 0, 0]
+            ])
+            
+            # f_args is a tuple with a single element
+            state_est, innovation, est_covar = ekf.predict(
+                r,
+                H,
+                f_args=(t,)
+            )
+
+    ```
+
     """
     def __init__(
         self,
@@ -50,7 +100,7 @@ class ExtendedKalmanFilter():
         *,
         f_args: tuple = ()
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """Predicts the next state of the system
+        """Predicts the next state of the system 
 
         Args:
             measurement (np.ndarray): The measured state of the system
