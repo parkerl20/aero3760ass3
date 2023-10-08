@@ -1,12 +1,24 @@
 '''
 
-Static Attitude Determination
+"""
+staticAttitude.py
+
+Computes static attitude determination using NLLS
+To be integrated with dynamic attitude determination using sensor error noise and standard deviations
+"""
 
 '''
 
 '''
 
 Preliminary Design Review Functions
+
+PSEUDOCODE
+
+- Determine initial state of attitude
+- Gather four initial pseudomeasurements from 2x star tracker, 2x sun sensor
+- Determine NLLS estimation of attitude with 4x3 matrix (4 observations, 3 --> roll, pitch, yaw frame-of-ref)
+- Finalise the moment-in-time attitude to pass to dynamicAttitude.py
 
 '''
 

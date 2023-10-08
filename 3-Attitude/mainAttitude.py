@@ -11,9 +11,11 @@ def main():
     
     '''
     
-    calculateStaticAttitude()
-    calculateDynamicAttitude()
-    estimtedAttitude = runSynthesisFunction()
+    staticEstimation = calculateStaticAttitude()
+    dynamicEstimation = calculateDynamicAttitude(staticEstimation)
+    estimtedAttitude = runSynthesisFunction(staticEstimation, dynamicEstimation)
+    
+    return estimatedAttitude
     
     '''
     
