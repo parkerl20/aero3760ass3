@@ -1,10 +1,7 @@
-import demo
-import spacesim
 import numpy as np
 
 def mainOrbit():
-    # Example of multiple satellite plotting
-    demo.main()
+    # For example of multiple satellite plotting, run demo.py
 
     # General pseudocode for completeing the orbital design processes
     """"
@@ -26,10 +23,9 @@ def mainOrbit():
     # Final return skeleton
     eci = np.array([0, 0, 0])
     t = np.linspace(0, 10, 1)
-    solution = np.array([eci, t])
 
-    return solution
+    return eci, t
 
 
-if __name__ == "__main_":
+if __name__ == "__main__":
     mainOrbit()
