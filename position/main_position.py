@@ -1,3 +1,13 @@
+# -------- Add spacesim to script path
+import sys
+import os
+
+current_file_path = os.path.abspath(__file__)
+parent_directory = os.path.dirname(current_file_path)
+grandparent_directory = os.path.dirname(parent_directory)
+sys.path.append(grandparent_directory)
+
+# --------- other imports
 from spacesim import satellite as sat
 from spacesim import estimation as est
 from spacesim import constants as const
