@@ -1,7 +1,4 @@
-# Imports
-
-import attitude_truth as attitude_truth
-
+from attitude import attitude_truth
 
 def main():
     
@@ -24,5 +21,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
-    
