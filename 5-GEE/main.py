@@ -8,10 +8,10 @@ def main():
     Map = functions.S2A()
     
     # Create map
-    functions.create_map(Map, "S2A-RGB-Winter")
+    # functions.create_map(Map, "S2A-RGB-Winter")
 
     # Show map
-    functions.show_map("S2A-RGB-Winter")
+    functions.show_map("S2A-Infrared-Winter")
 
 
 if __name__ == "__main__":
