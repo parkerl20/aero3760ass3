@@ -12,7 +12,9 @@ from spacesim import satellite as sat
 from spacesim import estimation as est
 from spacesim import constants as const
 from spacesim import orbit_determination as od
+from spacesim import celestial_body as cb
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 def transition_matrix_func(r: np.ndarray, dt: float) -> np.ndarray:
@@ -21,6 +23,11 @@ def transition_matrix_func(r: np.ndarray, dt: float) -> np.ndarray:
     r_mag = np.linalg.norm(r)
     
     # intermediate matrices
+    # [
+    #     [A, B],
+    #     [C, D]
+    # ]
+   
     A = np.zeros((3, 3))
     B = np.eye(3)
     D = np.zeros((3, 3))
@@ -52,41 +59,101 @@ def transition_matrix_func(r: np.ndarray, dt: float) -> np.ndarray:
     return trans_mtx
 
 def main() -> None:
-    tle_file = 'tle.txt'
-    satellite = sat.Satellite(tle_file)
+    tle_file = 'rsc/TLE/navstar_43.txt'
+    satellite = None
+    
+    # Load the satellite
+    with open(tle_file, 'r') as f:
+        name = f.readline().strip()
+        line1 = f.readline().strip()
+        line2 = f.readline().strip()
+        
+        satellite = sat.Satellite(
+            name,
+            line1,
+            line2,
+            cb.earth
+        )
     
     propagation_time = const.solar_day_length
     
     # Propagate the satellite
-    r_true,_,t = satellite.orbit.propagate(propagation_time)
+    r_true, v_true, t_obv = satellite.orbit.propagate(propagation_time)
     
     # Apply gaussian noise to the position
     r_obv = r_true.copy()
-    position_noise = 1
+    position_noise = 0.75
     r_obv[0] += np.random.normal(0, position_noise)
     r_obv[1] += np.random.normal(0, position_noise)
     r_obv[2] += np.random.normal(0, position_noise)
     
     # Possibility to add time error
-    v_1 = od.gibbs(r[:,0], r[:,1], r[:,2])
-    initial_state = np.concatenate((r[:,0], v_1))
+    v_1 = od.herrick_gibbs(
+        (r_obv[:,0], t_obv[0]),
+        (r_obv[:,1], t_obv[1]),
+        (r_obv[:,2], t_obv[2]),
+        const.MU_EARTH
+    )
     
-    # Simulate observations
+    initial_state = np.concatenate(
+        (r_obv[:,1].flatten(), v_1.flatten())
+    ).reshape((6, 1))
+    
+    process_noise = 100 * np.eye(6)
+    
     ekf = est.ExtendedKalmanFilter(
         transition_matrix_func,
         initial_state,
-        np.eye(6)
+        process_noise
     )
     
-    for r in r_obv:
-        estimated_state = ekf.predict(
+    # remove observation used for IOD
+    t_init = t_obv[1]
+    r_obv = r_obv[:,2:]
+    t_obv = t_obv[2:]
+    
+    # ----------- Simulate observations
+    t_last = t_init
+    observation_covariance = position_noise * np.eye(3)
+    obvservation_matrix = np.array([
+        [1, 0, 0, 0, 0, 0],
+        [0, 1, 0, 0 ,0, 0],
+        [0, 0, 1, 0, 0, 0]
+    ])
+    
+    innovations = []
+    vel_innovations = []
+    
+    for i, t in enumerate(t_obv):
+        dt = t - t_last
+        r = r_obv[:,i].reshape((3,1))
+        
+        estimated_state, innovation, _ = ekf.predict(
             r,
-            np.eye(3),
-            f_args=(r, t)
+            obvservation_matrix,
+            observation_covariance,
+            f_args=(r, dt)
         )
+        
+        innovations.append(np.linalg.norm(innovation))
+        t_last = t
+        vel_innovations.append(
+            np.linalg.norm(v_true[:,i+2] - estimated_state[3:6].flatten())
+        )
+    
+    # Plot EKF results
+    fig, ax = plt.subplots(1,1)
+    
+    ax.plot(t_obv[2:-1], vel_innovations[2:-1])
+    ax.grid()
+    ax.set_xlabel('Time (s)')
+    ax.set_ylabel('Innovation (m)')
+    ax.set_title('Innovation vs Time')
+    
+    plt.show()
     
     return
     
 
 if __name__ == '__main__':
-    print(const.J2000)
+    main()

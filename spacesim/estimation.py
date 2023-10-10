@@ -120,10 +120,14 @@ class ExtendedKalmanFilter():
 			tuple[np.ndarray, np.ndarray, np.ndarray]: The predicted state,
 				the innovation, and the predicted state covariance.
         """
-        trans_mtx = self.transition_matrix_func(*f_args)					
+        trans_mtx = self.transition_matrix_func(*f_args)
         
         state_est = trans_mtx @ self.curr_state_est
         est_covar = trans_mtx @ self.est_covar @ trans_mtx.T + self.process_covar
+        
+        # print(f"dt: {f_args[1]}")
+        # print(f"v_i: {self.curr_state_est[3:6]}")
+        # print(f"v_i+1: {state_est[3:6]}")
         
         innovation = measurement - observation_matrix @ state_est		# state residual
         innovation_covar = observation_matrix @ est_covar @ observation_matrix.T + observation_covariance

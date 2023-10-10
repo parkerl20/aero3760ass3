@@ -1,3 +1,4 @@
+from spacesim import constants as const
 import scipy.constants as spconst
 import pyvista as pv
 
@@ -53,3 +54,12 @@ class CelestialBody():
         self.body_texture: pv.Texture = body_texture
         
         return
+
+# Default celestial bodies
+earth = CelestialBody(
+    "Earth",
+    const.M_EARTH,
+    const.R_EARTH,
+    J2 = const.J2_EARTH,
+    colour="blue"
+)
