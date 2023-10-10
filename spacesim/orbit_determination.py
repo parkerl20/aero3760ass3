@@ -15,7 +15,8 @@ def gibbs(
         r1 (np.ndarray): A (3 x 1) position vector.
         r2 (np.ndarray): A (3 x 1) position vector.
         r3 (np.ndarray): A (3 x 1) position vector.
-        mu (float): The gravitational parameter of the primary body.
+        mu (float): The gravitational parameter of 
+            the primary body.
 
     Returns:
         np.ndarray: The (3 x 1) velocity vector at r2.
@@ -56,9 +57,12 @@ def herrick_gibbs(
     """The herrick gibbs method of orbit determination.
 
     Args:
-        obv1 (tuple[np.ndarray, float]): The eci position vector and time of the first observation.
-        obv2 (tuple[np.ndarray, float]): The eci position vector and time of the second observation.
-        obv3 (tuple[np.ndarray, float]): The eci position vector and time of the third observation.
+        obv1 (tuple[np.ndarray, float]): The eci position vector 
+            and time of the first observation.
+        obv2 (tuple[np.ndarray, float]): The eci position vector 
+            and time of the second observation.
+        obv3 (tuple[np.ndarray, float]): The eci position vector 
+            and time of the third observation.
         mu (float): The gravitational parameter of the primary body.
 
     Returns:
