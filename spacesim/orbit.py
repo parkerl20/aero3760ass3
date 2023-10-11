@@ -126,20 +126,26 @@ class Orbit():
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Propagates the orbit of a satellite. 
         
-        Checks the cache to see if the orbit has already been propagated to the 
-        time specified. If not, then the orbit is propagated and the results are cached.
+        Checks the cache to see if the orbit has already been propagated 
+        to the time specified. If not, then the orbit is propagated and 
+        the results are cached.
         
         All units used and returned are SI.
 
         Args:
             t (float): The time to propagate to in seconds.
-            t_start (float, optional): The time to start the propagation from in seconds.
-            use_km (bool, optional): Whether to return the results in km. Defaults to False.
-            coord_frame (str, optional): The coordinate frame to return the position in. Defaults to "ECI".
-            max_step (int, optional): The maximum number of steps to take. Defaults to 20.
+            t_start (float, optional): The time to start the propagation
+                from in seconds.
+            use_km (bool, optional): Whether to return the results in km.
+                Defaults to False.
+            coord_frame (str, optional): The coordinate frame to return the
+                position in. Defaults to "ECI".
+            max_step (int, optional): The maximum number of steps to take.
+                Defaults to 20.
 
         Returns:
-            tuple[np.ndarray, np.ndarray, np.ndarray]: The position, velocity and time steps arrays.
+            tuple[np.ndarray, np.ndarray, np.ndarray]: The position, velocity
+                and time steps arrays.
         """
         # TODO: add caching for analytical solution
         if analytical:  
@@ -171,17 +177,28 @@ class Orbit():
         
         return self.__propagate(t, t_start, use_km, coord_frame, max_step)
     
-    def __is_cached(self, t: float, t_start: float = 0, use_km: bool = False, coord_frame: str = "ECI") -> bool:
-        """Private method to check if the orbit has already been propergated to the time specified.
+    def __is_cached(
+        self,
+        t: float,
+        t_start: float = 0,
+        use_km: bool = False,
+        coord_frame: str = "ECI"
+    ) -> bool:
+        """Private method to check if the orbit has already been propergated 
+        to the time specified.
 
         Args:
             t (float): The time to propagate to in seconds.
-            t_start (float, optional): The time to start the propagation from in seconds.
-            use_km (bool, optional): Whether to return the results in km. Defaults to False.
-            coord_frame (str, optional): The coordinate frame to return the position in. Defaults to "ECI".
+            t_start (float, optional): The time to start the propagation 
+                from in seconds.
+            use_km (bool, optional): Whether to return the results in km. 
+                Defaults to False.
+            coord_frame (str, optional): The coordinate frame to return the 
+                position in. Defaults to "ECI".
 
         Returns:
-            bool: True if the orbit has already been propergated to the time specified, else False.
+            bool: True if the orbit has already been propergated to the time 
+                specified, else False.
         """
         new_prop_period = [t_start, t]
         return (
@@ -192,8 +209,13 @@ class Orbit():
         )
     
     @staticmethod
-    def __default_dynamics(t: float, state_vector: np.ndarray, orbit: "Orbit") -> np.ndarray:
-        """Default function to simulate the dynamics of an orbit in a restricted two body
+    def __default_dynamics(
+        t: float,
+        state_vector: np.ndarray, 
+        orbit: "Orbit"
+    ) -> np.ndarray:
+        """Default function to simulate the dynamics of an orbit in a 
+            restricted two body
         system. Works in conjuction with `scipy.integrate.solve_ivp`.
 
         Args:
@@ -229,11 +251,14 @@ class Orbit():
 
         Args:
             t (float): The time to propagate to in seconds.
-            coord_frame (str, optional): The coordinate frame to return the position in. Defaults to "ECI".
-            max_step (int, optional): The maximum number of steps to take. Defaults to 20.
+            coord_frame (str, optional): The coordinate frame to return 
+                the position in. Defaults to "ECI".
+            max_step (int, optional): The maximum number of steps to take. 
+                Defaults to 20.
 
         Returns:
-            tuple[np.ndarray, np.ndarray, np.ndarray]: The position, velocity and time steps arrays.
+            tuple[np.ndarray, np.ndarray, np.ndarray]: The position, velocity
+                and time steps arrays.
         """
         if coord_frame != "ECI" and coord_frame != "perifocal":
             raise ValueError(f'Invalid coordinate frame "{coord_frame}".')
@@ -266,11 +291,15 @@ class Orbit():
         
         return r, v, t
 
-    def set_dynamics(self, dynamics: Callable[[float, np.ndarray, "Orbit"], np.ndarray]) -> None:
+    def set_dynamics(
+        self, 
+        dynamics: Callable[[float, np.ndarray, "Orbit"], np.ndarray]
+    ) -> None:
         """Sets the dynamics function to use when propergating the orbit.
 
         Args:
-            dynamics (Callable[[float, np.ndarray, "Orbit"], np.ndarray]): The dynamics function.
+            dynamics (Callable[[float, np.ndarray, "Orbit"], np.ndarray]): 
+                The dynamics function.
         """
         self.orbit_dynamics = dynamics
         self._new_dynamics = True
