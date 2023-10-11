@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def transition_matrix_func(r: np.ndarray, dt: float) -> np.ndarray:
+def transition_matrix_func(r: np.ndarray, dt: float) -> np.ndarray:    
     mu = const.MU_EARTH
     r_i, r_j, r_k = r.ravel()
     r_mag = np.linalg.norm(r)
@@ -67,9 +67,8 @@ def main() -> None:
     tle_file = 'rsc/TLE/navstar_43.txt'
     satellite = None
     seed = 35
-    propagation_time = 40
-    propagation_step = 1
-    observation_frequency = 10
+    propagation_time = 60
+    propagation_step = 0.02
     
     # ----------- Setup
     np.random.seed(seed)
@@ -95,7 +94,7 @@ def main() -> None:
     
     # Apply gaussian noise to the position
     r_obv = r_true.copy()
-    position_noise = 0.4
+    position_noise = 0.5
     r_obv[0] += np.random.normal(0, position_noise, size=r_obv[0].shape)
     r_obv[1] += np.random.normal(0, position_noise, size=r_obv[1].shape)
     r_obv[2] += np.random.normal(0, position_noise, size=r_obv[2].shape)
@@ -113,7 +112,7 @@ def main() -> None:
         (r_obv[:,1].flatten(), v_1.flatten())
     ).reshape((6, 1))
     
-    process_noise = 40 * np.eye(6)
+    process_noise = 0.02 * np.eye(6)
     
     ekf = est.ExtendedKalmanFilter(
         transition_matrix_func,
@@ -143,96 +142,37 @@ def main() -> None:
     x_est, y_est, z_est = [], [], []
     
     for i, t in enumerate(t_obv):
-        
-        
         # Make observation
-        if i % observation_frequency == 0:
-            dt = t - t_last
-            r = r_obv[:,i].reshape((3,1))
-            state_estimate, _, _ = ekf.update(
-                r,
-                obvservation_matrix,
-                observation_covariance,
-                f_args=(ekf.curr_state_est[:3], dt)
-            )
-            
-            t_last = t
-            r_last = r
-            
-            # innovations.append(
-            #     np.linalg.norm(r_true[:,i+2] - state_estimate[:3].ravel())
-            # )
-            
-            # obv_innovations.append(
-            #     np.linalg.norm(r_true[:,i+2] - r.ravel())
-            # )
-        
-        # Predict the current state
         dt = t - t_last
-                
-        state = ekf.predict_state(
+        r = r_obv[:,i].reshape((3,1))
+        
+        state_estimate, _, _ = ekf.update(
+            r,
+            obvservation_matrix,
+            observation_covariance,
             f_args=(ekf.curr_state_est[:3], dt)
         )
         
+        t_last = t
+        
         innovations.append(
-            np.linalg.norm(r_true[:,i+2] - state[:3].ravel())
+            np.linalg.norm(r_true[:,i+2] - state_estimate[:3].ravel())
+        )
+        
+        vel_innovations.append(
+            np.linalg.norm(v_true[:,i+2] - state_estimate[3:].ravel())
         )
 
-
-    # Plot EKF results
-    # fig = plt.figure("EKF Results")
-    # ax = fig.add_subplot(111, projection='3d')
+    fig, ax = plt.subplots()
     
-    # x_true = r_true[0]
-    # y_true = r_true[1]
-    # z_true = r_true[2]
+    ax.plot(t_obv, innovations, label='Innovation')
     
-    # start_idx = 30
-    # end_idx = 35
-    
-    # ax.plot(
-    #     x_true[start_idx+2:end_idx+2],
-    #     y_true[start_idx+2:end_idx+2],
-    #     z_true[start_idx+2:end_idx+2],
-    #     label="True Orbit",
-    #     marker='o'
-    # )
-
-    # ax.plot(
-    #     x_est[start_idx:end_idx],
-    #     y_est[start_idx:end_idx],
-    #     z_est[start_idx:end_idx],
-    #     label="Estimated Orbit",
-    #     marker='x'
-    # )
-    
-    # ax.set_xlabel("X (m)")
-    # ax.set_ylabel("Y (m)")
-    # ax.set_zlabel("Z (m)")
-    
-    # ax.legend()
-    
-    # Plot innovations
-    fig = plt.figure("Innovations")
-    ax = fig.add_subplot(111)
-    
-    ax.plot(
-        t_obv,
-        innovations,
-        label="Innovation"
-    )
-    
-    # ax.plot(
-    #     t_obv,
-    #     obv_innovations,
-    #     label="Obv Innovation"
-    # )
-    
-    ax.set_xlabel("Time (s)")
-    ax.set_ylabel("Innovation (m)")
+    ax.set_title('Innovation vs Time')
+    ax.set_xlabel('Time (s)')
+    ax.set_ylabel('Innovation (m)')
     
     ax.legend()
-    ax.grid()
+    ax.grid()    
     
     plt.show()
     
