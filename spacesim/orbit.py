@@ -73,7 +73,14 @@ class Orbit():
         
         mu = self.body.gravitational_parameter
         
-        self.init_r_eci, self.init_v_eci = ot.elements_to_ECI(a, e, i, rt_asc, arg_p, theta)
+        self.init_r_eci, self.init_v_eci = ot.elements_to_ECI(
+            a,
+            e,
+            i,
+            rt_asc,
+            arg_p,
+            theta
+        )
         
         # Calculated instance variables
         self.period: float = 2 * math.pi * (mu / a**3) ** (-1/2)
@@ -168,7 +175,13 @@ class Orbit():
                     
                 return r, v, t
             else:
-                return self.__propagate_analytical(t, t_start, use_km, coord_frame, max_step)
+                return self.__propagate_analytical(
+                    t,
+                    t_start,
+                    use_km,
+                    coord_frame,
+                    max_step
+                )
             
         
         # If no changes needed i.e. fully cached
@@ -264,14 +277,30 @@ class Orbit():
             raise ValueError(f'Invalid coordinate frame "{coord_frame}".')
         
         if coord_frame == "ECI":
-            init_r, init_v = ot.elements_to_ECI(self.semi_major_axis, self.eccentricity, self.inclination,
-                                                self.right_ascension, self.argument_periapsis, self.true_anomaly)
+            init_r, init_v = ot.elements_to_ECI(
+                self.semi_major_axis,
+                self.eccentricity,
+                self.inclination,
+                self.right_ascension,
+                self.argument_periapsis,
+                self.true_anomaly
+            )
         elif coord_frame == "perifocal":
-            init_r, init_v = ot.elements_to_perifocal(self.semi_major_axis, self.eccentricity, self.true_anomaly)
+            init_r, init_v = ot.elements_to_perifocal(
+                self.semi_major_axis,
+                self.eccentricity,
+                self.true_anomaly
+            )
         
         y0 = np.concatenate((init_r, init_v)).flatten()
         t_span = [t_start, t]
-        solution = integrate.solve_ivp(self.orbit_dynamics, t_span, y0, max_step=max_step, args=(self,))
+        solution = integrate.solve_ivp(
+            self.orbit_dynamics,
+            t_span,
+            y0,
+            max_step=max_step,
+            args=(self,)
+        )
         
         r = solution.y[0:3]
         v = solution.y[3:6]
@@ -392,7 +421,11 @@ class Orbit():
             
     
     @staticmethod
-    def mean_to_true_anomaly(mean_anomaly: float, e: float, degrees: bool = True) -> float:
+    def mean_to_true_anomaly(
+        mean_anomaly: float,
+        e: float,
+        degrees: bool = True
+    ) -> float:
         """Finds the true anomaly of a satellite in its orbit
         using a taylor series expansion.
 
