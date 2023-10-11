@@ -87,7 +87,7 @@ class ExtendedKalmanFilter():
         self,
         transition_matrix_func: Callable[[any], np.ndarray],
         initial_state: np.ndarray,
-        process_covariance: np.ndarray,
+        process_covariance: np.ndarray
     ) -> None:
         
         self.transition_matrix_func = transition_matrix_func
@@ -97,7 +97,7 @@ class ExtendedKalmanFilter():
         
         return
     
-    def predict(
+    def update(
         self,
         measurement: np.ndarray,
         observation_matrix: np.ndarray,
@@ -125,10 +125,6 @@ class ExtendedKalmanFilter():
         state_est = trans_mtx @ self.curr_state_est
         est_covar = trans_mtx @ self.est_covar @ trans_mtx.T + self.process_covar
         
-        # print(f"dt: {f_args[1]}")
-        # print(f"v_i: {self.curr_state_est[3:6]}")
-        # print(f"v_i+1: {state_est[3:6]}")
-        
         innovation = measurement - observation_matrix @ state_est		# state residual
         innovation_covar = observation_matrix @ est_covar @ observation_matrix.T + observation_covariance
         kalman_gain = est_covar @ observation_matrix.T @ np.linalg.inv(innovation_covar)
@@ -139,3 +135,16 @@ class ExtendedKalmanFilter():
         post_fit_residual = measurement - observation_matrix @ self.curr_state_est
         
         return self.curr_state_est, post_fit_residual, self.est_covar
+
+    def predict_state(self, f_args: tuple = ()) -> np.ndarray:
+        """Returns the state of the system at a given time.
+
+        Args:
+            f_args (tuple, optional): Additional arguments to pass to the
+                transition matrix function.
+
+        Returns:
+            np.ndarray: The estimated state of the system.
+        """
+        transition_mtx = self.transition_matrix_func(*f_args)
+        return transition_mtx @ self.curr_state_est
