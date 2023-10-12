@@ -1,4 +1,5 @@
 import numpy as np
+from orbitalElementsCalc import orbitalParamaters
 
 def mainOrbit():
     # For example of multiple satellite plotting, run demo.py
@@ -19,6 +20,15 @@ def mainOrbit():
     9. Determine thrusters needed to counteract the J2 effect
     10. Send final ECI matrix to other sections as a "Truth"
     """
+
+    # For one satellite
+    # Coordinates of the centre of NSW
+    lon = 146.9211
+    lat = -31.2535
+    swathe_width = 4.609
+
+    # Calculate orbital paramaters based on a latitude, longitude and swathe_width
+    orbitalParamaters(lat, lon, swathe_width)
 
     # Final return skeleton
     eci = np.array([0, 0, 0])
