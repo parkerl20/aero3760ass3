@@ -1,5 +1,6 @@
 import numpy as np
 from orbitalElementsCalc import orbitalParamaters
+from orbitalElementsCalc import minimumAltitude
 
 def mainOrbit():
     # For example of multiple satellite plotting, run demo.py
@@ -23,9 +24,15 @@ def mainOrbit():
 
     # For one satellite
     # Coordinates of the centre of NSW
-    lon = 146.9211
-    lat = -31.2535
-    swathe_width = 4.609
+    lon = 148.5
+    lat = -33
+
+    # Other paramaters
+    swathe_width = 5.0  # Swathe width for one satellite to cover NSW
+    alpha = 2.4         # Spacial resolution of the chosen camera
+
+    # Minimum altitude of satelltie to meet swathe_width requirement
+    altitude = minimumAltitude(swathe_width, alpha)
 
     # Calculate orbital paramaters based on a latitude, longitude and swathe_width
     orbitalParamaters(lat, lon, swathe_width)
