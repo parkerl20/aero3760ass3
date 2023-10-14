@@ -88,10 +88,7 @@ def nlls_gps_weights(att_data, att_init):
         H22 = np.cos(psi)*np.cos(theta)*np.sin(phi)*att_data[i,0] + np.sin(psi)*np.cos(theta)*np.sin(phi)*att_data[i,1] - np.sin(theta)*np.sin(phi)*att_data[i,2]
         H23 = (-np.sin(psi)*np.sin(theta)*np.sin(phi) - np.cos(psi)*np.cos(phi))*att_data[i,0] + (np.cos(psi)*np.sin(theta)*np.sin(phi) - np.sin(psi)*np.cos(phi))*att_data[i,1]
 
-        print((-np.sin(psi)*np.sin(theta)*np.sin*(phi) + np.sin(psi)*np.cos(phi))*att_data[i,0])
-        print((-np.sin(psi)*np.sin(theta)*np.sin(phi)))
-        print(np.cos(theta)*np.sin(phi)*att_data[i,2])
-        H31 = (-np.sin(psi)*np.sin(theta)*np.sin*(phi) + np.sin(psi)*np.cos(phi))*att_data[i,0] + (-np.sin(psi)*np.sin(theta)*np.sin(phi) - np.cos(psi)*np.cos(phi))*att_data[i,1] - np.cos(theta)*np.sin(phi)*att_data[i,2]
+        H31 = (-np.cos(psi)*np.sin(theta)*np.sin(phi) + np.sin(psi)*np.cos(phi))*att_data[i,0] + (-np.sin(psi)*np.sin(theta)*np.sin(phi) - np.cos(psi)*np.cos(phi))*att_data[i,1] - np.cos(theta)*np.sin(phi)*att_data[i,2]
         H32 = np.cos(psi)*np.cos(theta)*np.cos(phi)*att_data[i,0] + np.sin(psi)*np.cos(theta)*np.cos(phi)*att_data[i,1] - np.sin(theta)*np.cos(phi)*att_data[i,2]
         H33 = (-np.sin(psi)*np.sin(theta)*np.cos(phi) + np.cos(psi)*np.sin(phi))*att_data[i,0] + (np.cos(psi)*np.sin(theta)*np.cos(phi) + np.sin(psi)*np.sin(phi))*att_data[i,1]
 
@@ -104,12 +101,16 @@ def nlls_gps_weights(att_data, att_init):
 
         # Equal weights matrix
         W = np.eye(att_data.size)
+        W = np.eye((3))
         
+        print(H.shape)
         # PDOP        
         pdop = np.sqrt(np.trace( np.linalg.inv( H.T @ H )))
 
         # NLLS calculation for change in attitude for next iterations
         datt = np.linalg.inv(H.T @ W @ H) @ H.T @ W @ dy
+
+        # confused about dimension sizing
         datt = datt.reshape((att_opt.shape))
         
 
