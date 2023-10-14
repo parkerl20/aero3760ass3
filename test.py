@@ -24,12 +24,20 @@ def main() -> None:
         body_texture=earth_tex,
     )
     
+    d_RAAN = 90
+    shift_RAAN = -5
+    h = 274
+    a = const.R_EARTH + h * 1000
+    e = 0
+    i = -35
+    omega = 0
+    
     orbit_1 = orbit.Orbit(
-        6778137.0,
-        0,
-        -33,
-        0,
-        0,
+        a,
+        e,
+        i,
+        shift_RAAN,
+        omega,
         0,
         earth,
         dt.datetime.now(),
@@ -38,11 +46,11 @@ def main() -> None:
     )
     
     orbit_2 = orbit.Orbit(
-        6778137.0,
-        0,
-        -33,
-        180,
-        0,
+        a,
+        e,
+        i,
+        shift_RAAN + d_RAAN,
+        omega,
         0,
         earth,
         dt.datetime.now(),
@@ -54,7 +62,7 @@ def main() -> None:
     orbit_system.add_orbit(orbit_1)
     orbit_system.add_orbit(orbit_2)
     
-    k_orbit = 26
+    k_orbit = 12
     
     prop_time = k_orbit * orbit_1.period
     t_start = (k_orbit - 1) * orbit_1.period
@@ -71,3 +79,8 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+    # T = 5400
+    # a = (T**2 * const.MU_EARTH / (4 * spconst.pi**2))**(1/3)
+    # h = (a - const.R_EARTH) / 1000
+    
+    # print(f"Altitude: {h} km")
