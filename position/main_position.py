@@ -66,9 +66,9 @@ def main() -> None:
     # ----------- Parameters
     tle_file = 'rsc/TLE/navstar_43.txt'
     satellite = None
-    seed = 35
-    propagation_time = 60
-    propagation_step = 0.02
+    seed = 22
+    propagation_time = 20
+    propagation_step = 0.01
     
     # ----------- Setup
     np.random.seed(seed)

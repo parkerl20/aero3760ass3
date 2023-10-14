@@ -153,7 +153,13 @@ class SystemPlotter():
                 lng.append(lng_i)
                 lat.append(lat_i)
             
-            track_ax.plot(lng, lat, label=orbit.name, linewidth=0.5)
+            track_ax.plot(
+                lng,
+                lat,
+                label=orbit.name,
+                color=orbit.colour,
+                linewidth=0.5
+            )
         
         track_ax.legend()
         track_fig.tight_layout()
