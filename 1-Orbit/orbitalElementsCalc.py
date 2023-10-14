@@ -10,7 +10,8 @@ def orbitalParamaters(lat, lon, swathe_width):
 
     # A target wll pass directly over a target of ground station on the earth if:
     L_node = lon - np.arcsin(np.tan(lat)/np.tan(i)) 
-    print(L_node)
+    
+    return 0
 
 
 def minimumAltitude(swathe_width, alpha):
@@ -22,5 +23,5 @@ def minimumAltitude(swathe_width, alpha):
 
     Outputs: alt (float) = Minimum altitude the satellite can be placed at
     '''
-    altitude = swathe_width/alpha
+    altitude = (swathe_width * 10000/90)/alpha
     return altitude

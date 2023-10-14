@@ -137,6 +137,7 @@ class SystemPlotter():
         track_ax.grid()
 
         # Add orbits
+        print(f"prop time: {t}")
         for orbit in self.system.orbits:
             r_eci, _, t_eci = orbit.propagate(t, t_start=t_start)
             lat, lng = [], []
