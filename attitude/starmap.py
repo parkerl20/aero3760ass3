@@ -6,7 +6,7 @@ from skyfield.data import hipparcos
 
 
 # Set the location of our satellite, in heliocentric rectangular coordinates
-location = np.array([-3.36867753, -20.1950307, -16.55292215])
+location = np.array([-3.36867753, -10.1950307, -36.55292215])
 
 
 def build_stereographic_projection(location):
