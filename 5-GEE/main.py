@@ -8,7 +8,7 @@ def main():
     # Map = functions.S2A("2019-12-01", "2020-01-31")
     # Map = functions.surface_temperature()
     # Map = functions.fires()
-    # Map = functions.S2A_NDVI("2019-12-01", "2020-01-31")
+    Map = functions.S2A_NDVI("2019-12-01", "2020-01-31")
     # Create map
     # functions.create_map(Map, "NSW Infrared")
     # functions.create_map(Map, "Surface temperature")
@@ -18,7 +18,7 @@ def main():
     # Show map
     # functions.show_map("NSW Infrared")
     # functions.show_map("Surface temperature")
-    functions.show_map("Fires")
+    # functions.show_map("Fires")
     # functions.show_map("NDVI")
 
 
