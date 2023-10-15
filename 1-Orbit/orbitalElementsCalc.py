@@ -1,3 +1,13 @@
+# -------- Add spacesim to script path
+import sys
+import os
+
+current_file_path = os.path.abspath(__file__)
+parent_directory = os.path.dirname(current_file_path)
+grandparent_directory = os.path.dirname(parent_directory)
+sys.path.append(grandparent_directory)
+
+from spacesim import constants as const
 import numpy as np
 
 def orbitalParamaters(lat, lon, swathe_width):
@@ -24,4 +34,9 @@ def minimumAltitude(swathe_width, alpha):
     Outputs: alt (float) = Minimum altitude the satellite can be placed at
     '''
     altitude = (swathe_width * 10000/90)/alpha
+    return altitude
+
+
+def repeatingGroundTrackAltitude(j, k, i):
+
     return altitude

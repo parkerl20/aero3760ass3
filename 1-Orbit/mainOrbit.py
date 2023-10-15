@@ -2,6 +2,7 @@ import numpy as np
 from orbitalElementsCalc import orbitalParamaters
 from orbitalElementsCalc import minimumAltitude
 from simulateOrbit import simulateOrbit
+from orbitalElementsCalc import repeatingGroundTrackAltitude
 # from spacesim import constants as =
 
 def mainOrbit():
@@ -30,20 +31,30 @@ def mainOrbit():
 
    # Other paramaters
    swathe_width = 10.0  # Swathe width for one satellite to cover NSW
-   alpha = 2.4         # Spacial resolution of the chosen camera
+   alpha = 2.4        # Spacial resolution of the chosen camera
 
    # Minimum altitude of satelltie to meet swathe_width requirement
-   a = minimumAltitude(swathe_width, alpha)
+   a_min = minimumAltitude(swathe_width, alpha)
+
+   # Altitude for a repeating ground track orbit based on j: orbital periods and k:number of days
+   a = repeatingGroundTrackAltitude(j=15, k=1, i=lat)
 
    # Calculate orbital paramaters based on a latitude, longitude and swathe_width
    orbitalParamaters(lat, lon, swathe_width)
    print(f"altitude: {a}")
    # Define the orbital elements
-   a = a*1000 + 6378130  # Semi-major axis in meters
+   # a = a*1000 + 6378130  # Semi-major axis in meters
+   # e = 0.0  # Eccentricity
+   # i = 38.0  # Inclination in degrees
+   # rt_asc = 90.0  # Right ascension of the ascending node in degrees
+   # arg_p = 60.0  # Argument of periapsis in degrees
+   # theta = 0.0  # True anomaly in degrees
+
+   a = 647236 + 6378130  # Semi-major axis in meters
    e = 0.0  # Eccentricity
-   i = 38.0  # Inclination in degrees
-   rt_asc = 90.0  # Right ascension of the ascending node in degrees
-   arg_p = 60.0  # Argument of periapsis in degrees
+   i = -33.0  # Inclination in degrees
+   rt_asc = 114.0  # Right ascension of the ascending node in degrees
+   arg_p = 0.0  # Argument of periapsis in degrees
    theta = 0.0  # True anomaly in degrees
 
    # Simulate the orbit
