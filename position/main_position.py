@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def transition_matrix_func(r: np.ndarray, dt: float) -> np.ndarray:    
+def transition_matrix_func_spherical(r: np.ndarray, dt: float) -> np.ndarray:    
     mu = const.MU_EARTH
     r_i, r_j, r_k = r.ravel()
     r_mag = np.linalg.norm(r)
@@ -61,6 +61,26 @@ def transition_matrix_func(r: np.ndarray, dt: float) -> np.ndarray:
     
     trans_mtx = np.eye(6) + (F * dt) + (F @ F * (dt**2 / 2))
     return trans_mtx
+
+# State matrix for Earth's Oblateness
+def transition_matrix_func_nonspherical(r: np.ndarray, dt: float, lat: np.ndarray, lon: np.ndarray) -> np.ndarray:
+    R = const.R_EARTH
+    r_i, r_j, r_k = r.ravel()
+    r_mag = np.linalg.norm(r)
+
+    # For second order zonal harmonics
+    C_20 = -0.0010826269
+    
+        
+
+
+    return trans_mtx
+
+# State matrix for Earth's Atmospheric Drag
+
+# State matrix for Solar Radiation Pressure
+
+# State matrix for Moon's gravitational pull
 
 def main() -> None:
     # ----------- Parameters
