@@ -473,7 +473,7 @@ class RealTimeSatellite(Orbit):
         epoch: dt.datetime,
         *,
         name: str = None,
-        orb_dyn: Callable[[float, np.ndarray, Orbit], np.ndarray] = None,
+        orb_dyn: Callable[[float, np.ndarray, 'RealTimeSatellite'], np.ndarray] = None,
         colour: str = None,
         propagation_length: float = 20.0,
         propagation_step: float = 1.0
@@ -503,13 +503,25 @@ class RealTimeSatellite(Orbit):
         
         self.current_r_eci = self.init_r_eci
         self.current_v_eci = self.init_v_eci
+        self.current_time = 0
         
         self.propagation_length = propagation_length
         self.propagation_step = propagation_step
         
-        self.sensors: list[sensor.Sensor] = []
+        # List of sensor and time of most recent sample
+        self.sensors: list[list[sensor.SatelliteSensor, float]] = []
         
         return
+    
+    def attach_sensor(self, sensor: sensor.SatelliteSensor) -> None:
+        sensor_info = [sensor, self.current_time]
+        self.sensors.append(sensor_info)
+        return
+    
+    def __propagate(
+        self
+    ) -> np.ndarray:
+        pass
     
     def __iter__(self):
         return self
