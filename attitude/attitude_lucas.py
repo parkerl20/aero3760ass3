@@ -6,7 +6,8 @@ NLLS for Static Attitude Determination
 
 '''
 
-def nlls_gps(rho_obs,satellites):
+# NLLS iteration to determine roll, pitch, yaw of satellite
+def nlls_euler(rho_obs,satellites):
     '''
     NLLS_GPS - calculates the position of a ground station given pseudorange measurements
     and satellite positions using Non-Linear Least Sqaures and the Pseudorange Equation.
@@ -75,8 +76,7 @@ def nlls_gps(rho_obs,satellites):
 
     return pos_est, pdop
 
-
-
+# Overall algorithm to determine attitude estimation
 def calculate_attitude(noise_bool):
     
     # Obtain Euler angles (an absolute truth)
@@ -134,3 +134,23 @@ def calculate_attitude(noise_bool):
     # plt.show()
 
     return pos_acc, t_over, pdop
+
+
+# Attitude Truth
+'''
+Pixel Location Determination
+- FOV
+- Camera Matrix
+- Star Magnitude
+Star Tracker Noise Characterisation
+- Photon Noise
+- Electron Noise
+- Analog-to-Digital Noise
+Image Processing
+- Noise Reduction
+- Thresholding and star finding algorithm
+- Centroiding (centre of mass method is easier)
+Catalog Formation
+- Reference catalog
+- Map stars onto Earth planet
+'''
