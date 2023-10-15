@@ -10,8 +10,6 @@ NLLS for Static Attitude Determination
 Planning for function
 """
 # Euler angles
-# y = np.array([phi, theta, psi])
-
 
 # m = lgcv reference vectors
 
@@ -63,6 +61,7 @@ def nlls_gps_weights(vector_obs, ref_vectors_lgcv, att_init):
     tol =  1e-8
     datt = 100
     att_opt = att_init
+    datts = []
 
     # until converges
     while (i < max_iter) and (np.sum(np.abs(datt) > tol)):
@@ -84,11 +83,7 @@ def nlls_gps_weights(vector_obs, ref_vectors_lgcv, att_init):
         y = C_lgcv @ ref_vectors_lgcv.T
 
         # difference between measured and calculated
-        # this is wrong - basically i don't understand how do more iterations than i have data??
-        # look over other nlls again 
-        # should take all att data - 
         dy = (vector_obs.T - y)
-        # i think this is wrong dimension
 
         print(dy)
         print("dy", dy.shape)
@@ -118,50 +113,40 @@ def nlls_gps_weights(vector_obs, ref_vectors_lgcv, att_init):
                 [H31, H32, H33]]))
         
         H = np.array(H)
-        print(H.shape)
+        # print(H.shape)
+        # Reshaping to be 2 dimensional
         H = H.reshape(vector_obs.size,3)
         # make H for each sensor
-        # H doesn't work because needs to be square
         # H = np.array([H,H,H])
 
-
-
-        # Equal weights matrix for 
+       # Equal weights matrix for 
         W = np.eye(vector_obs.size)
-        print(vector_obs.shape)
+        # print(vector_obs.shape)
 
         # W = np.eye(3)
         
-        print(H.shape)
+        # print(H.shape)
         # PDOP        
         pdop = np.sqrt(np.trace( np.linalg.inv( H.T @ H )))
 
         # NLLS calculation for change in attitude for next iterations
-
-
         # H = np.array([H,H,H])
-
-        print((np.linalg.inv(H.T @ W @ H) @ H.T @ W).shape)
-        print(dy)
+        # print(dy)
         datt = np.linalg.inv(H.T @ W @ H) @ H.T @ W @ dy
 
-        # this will probs output radians
-        print(datt)
+        # this will  output radians
+        # print(datt)
 
         datt_deg = np.rad2deg(datt)
-        print(datt_deg)
-
-        
-
+        # print(datt_deg)
 
         # confused about dimension sizing
         # datt = datt.reshape((att_opt.shape))
         
 
         if np.sum(np.abs(datt) > tol):
-            print(att_opt)
             att_opt = att_opt + datt.T
-            print(att_opt)
+            datts.append(np.linalg.norm(datt))
             
             i +=1
             att_store = np.append(att_store,[att_opt], axis = 0)
@@ -171,25 +156,38 @@ def nlls_gps_weights(vector_obs, ref_vectors_lgcv, att_init):
     print()
     print(f"Number of iterations to converge: {i}")
     print("PDOP:",pdop)
-    return att_opt, pdop, att_store, i
+    return att_opt, pdop, att_store, i, datts
 
 
 
-att_init = (np.array([11,32,-45]))
+att_init = (np.array([10,32,-45]))
+
+# att_data = np.array([[10,31,-41],[9,30,-47],[14,32,-44]])
 
 # say we have 4 sensors
-att_data = np.array([[10,31,-41],[9,30,-47],[14,32,-44]])
-
-vector_obs = np.array([[-0.0879, 0.5242, -0.6383],[-0.3319, 0.3281, 0.2055], [0.8465, 0.0540, 0.6485]])
-ref_vectors_lgcv = np.array([[0.2,0.7,-0.4],[0.1,0.3,0.4],[0.7,-0.8,0.1] ])
+vector_obs = np.array([[-0.0879, 0.5242, -0.6383],[-0.3319, 0.3281, 0.2055], [0.8465, 0.0540, 0.6485],[0.8465, 0.0540, 0.6485]])
+ref_vectors_lgcv = np.array([[0.2,0.7,-0.4],[0.1,0.3,0.4],[0.7,-0.8,0.1],[0.7,-0.8,0.1] ])
 # needs to be in radians
-att_opt, pdop, att_store, i = nlls_gps_weights(vector_obs, ref_vectors_lgcv, att_init)
+att_opt, pdop, att_store, i, datts = nlls_gps_weights(vector_obs, ref_vectors_lgcv, att_init)
 
 print("Final attitude estimation", att_opt)
 print(att_store.shape)
 plt.figure()
-plt.plot(range(len(att_store)), att_store[:,0])
-plt.plot(range(len(att_store)), att_store[:,1])
-plt.plot(range(len(att_store)), att_store[:,2])
+plt.plot(range(len(att_store)), att_store[:,0], label = "Yaw")
+plt.plot(range(len(att_store)), att_store[:,1], label = "Pitch")
+plt.plot(range(len(att_store)), att_store[:,2], label = "Roll")
+plt.legend()
+plt.xlabel("Iterations")
+plt.ylabel("Value (degrees)")
 plt.show()
+
+plt.figure()
+plt.plot(range(i), datts, label = "Change in x")
+plt.legend()
+plt.xlabel("Iterations")
+plt.ylabel("Value")
+plt.show()
+
+
+
 # justifying nlls
