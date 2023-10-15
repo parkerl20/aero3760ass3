@@ -38,16 +38,16 @@ def simulateOrbit(a, e, i, rt_asc, arg_p, theta) -> None:
     
     # Create orbit
     orbit1 = orb.Orbit(a, e, i, rt_asc, arg_p, theta, earth, epoch, "1st Satellite")
-    orbit2 = orb.Orbit(a, e, i, rt_asc+90, arg_p, theta, earth, epoch, "2nd Satellite")
-    orbit3 = orb.Orbit(a, e, i, rt_asc+180, arg_p, theta, earth, epoch, "2nd Satellite")
-    orbit4 = orb.Orbit(a, e, i, rt_asc+270, arg_p, theta, earth, epoch, "2nd Satellite")
+    orbit2 = orb.Orbit(a, e, i, rt_asc+90.0, arg_p, theta, earth, epoch, "2nd Satellite")
+    orbit3 = orb.Orbit(a, e, i, rt_asc+180.0, arg_p, theta, earth, epoch, "3rd Satellite")
+    orbit4 = orb.Orbit(a, e, i, rt_asc+270.0, arg_p, theta, earth, epoch, "4th Satellite")
     
     # Params
     propagation_time = 60 * 60 * 24
 
     # Results
     result_r1, result_v1, result_t1 = orbit1.propagate(propagation_time)
-    result_r2, result_v2, result_t2 = orbit2.propagate(propagation_time)
+    # result_r2, result_v2, result_t2 = orbit2.propagate(propagation_time)
 
     # Adding the orbit to a system
     earth_orbital_system = orbsys.OrbitalSystem(earth)
@@ -68,4 +68,4 @@ def simulateOrbit(a, e, i, rt_asc, arg_p, theta) -> None:
     
     plt.show()
 
-    return #result_r, result_v, result_t
+    return 0 #result_r, result_v, result_t
