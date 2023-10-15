@@ -157,7 +157,8 @@ def S2A_NDVI(start_date: str, end_date: str):
     locations = ee.FeatureCollection([
         ee.Feature(ee.Geometry.Point([146.9211, -31.2532]), {'name': 'NSW Centre'}),
         ee.Feature(ee.Geometry.Point([151.2093, -33.8688]), {'name': 'Sydney'}),
-        ee.Feature(ee.Geometry.Point([152.1895, -30.8487]), {'name': 'Carrai Creek'})
+        ee.Feature(ee.Geometry.Point([152.1895, -30.8487]), {'name': 'Carrai Creek'}),
+        ee.Feature(ee.Geometry.Point([151.2642, -33.6184]), {'name': 'Ku ring gai chase park'})
     ])
 
     # Get NDVI values 

@@ -1,6 +1,10 @@
 import functions
 
 def main():
+    """Currently running this code will take about 300 seconds, but will make a html map of nsw in the NDVI index,
+       Select a few locations and write their specific NDVI values to a csv file and then display the html map
+       in your browser.
+    """
     # Connect to GEE
     functions.initialise_credentials()
 
@@ -13,13 +17,13 @@ def main():
     # functions.create_map(Map, "NSW Infrared")
     # functions.create_map(Map, "Surface temperature")
     # functions.create_map(Map, "Fires")
-    # functions.create_map(Map, "NDVI")
+    functions.create_map(Map, "NDVI")
 
     # Show map
     # functions.show_map("NSW Infrared")
     # functions.show_map("Surface temperature")
     # functions.show_map("Fires")
-    # functions.show_map("NDVI")
+    functions.show_map("NDVI")
 
 
 if __name__ == "__main__":
