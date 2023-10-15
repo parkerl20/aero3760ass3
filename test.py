@@ -25,22 +25,24 @@ def main() -> None:
     )
     
     d_RAAN = 90
-    shift_RAAN = -5
-    h = 274
+    shift_RAAN = -8
+    h = 332.39625   # km
     a = const.R_EARTH + h * 1000
     e = 0
-    i = -35
+    i_1 = 33
+    i_2 = i_1
     omega = 0
+    date = dt.datetime(2023, 10, 1)
     
     orbit_1 = orbit.Orbit(
         a,
         e,
-        i,
+        i_1,
         shift_RAAN,
         omega,
         0,
         earth,
-        dt.datetime.now(),
+        date,
         "orbit_1",
         colour="red"
     )
@@ -48,12 +50,12 @@ def main() -> None:
     orbit_2 = orbit.Orbit(
         a,
         e,
-        i,
+        i_2,
         shift_RAAN + d_RAAN,
         omega,
         0,
         earth,
-        dt.datetime.now(),
+        date,
         "orbit_2",
         colour="lime"
     )
@@ -62,7 +64,7 @@ def main() -> None:
     orbit_system.add_orbit(orbit_1)
     orbit_system.add_orbit(orbit_2)
     
-    k_orbit = 12
+    k_orbit = 4.5
     
     prop_time = k_orbit * orbit_1.period
     t_start = (k_orbit - 1) * orbit_1.period
@@ -75,12 +77,28 @@ def main() -> None:
     )
     
     plt.show()
+    
+    # Add space background
+    # earth_pl = orbit_system_plotter.plot3d(
+    #     prop_time,
+    #     t_start=t_start
+    # )
+    # cubemap = pv_ex.download_cubemap_space_16k()
+    # earth_pl.add_actor(cubemap.to_skybox())
+    
+    
+    # earth_pl.show()
     return
 
 if __name__ == "__main__":
-    main()
-    # T = 5400
-    # a = (T**2 * const.MU_EARTH / (4 * spconst.pi**2))**(1/3)
-    # h = (a - const.R_EARTH) / 1000
+    # main()
+    # T = 5760
     
-    # print(f"Altitude: {h} km")
+    t = (spconst.pi) / const.ROT_V_EARTH
+    T = t / 7.875
+    print(T)
+    
+    a = (T**2 * const.MU_EARTH / (4 * spconst.pi**2))**(1/3)
+    h = (a - const.R_EARTH) / 1000
+    
+    print(f"Altitude: {h} km")
