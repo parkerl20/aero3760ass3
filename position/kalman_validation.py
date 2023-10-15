@@ -165,7 +165,7 @@ def main() -> None:
         const.MU_EARTH
     )
     
-    print(f"predict diff: {v_1.flatten() - v_true[:,obv_index].flatten()}")
+    # print(f"predict diff: {v_1.flatten() - v_true[:,obv_index].flatten()}")
     
     initial_state = np.concatenate(
         (r_obv[:,obv_index].flatten(), v_1.flatten())
