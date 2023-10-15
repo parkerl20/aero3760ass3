@@ -5,7 +5,8 @@ from skyfield.api import Star, load
 from skyfield.data import hipparcos
 
 
-location = np.array([-3.36867753, -10.1950307, -16.55292215])
+# Set the location of our satellite, in heliocentric rectangular coordinates
+location = np.array([-3.36867753, -20.1950307, -16.55292215])
 
 
 def build_stereographic_projection(location):
@@ -83,14 +84,14 @@ marker_size = (0.5 + limiting_magnitude - magnitude) ** 2.0
 fig, ax = plt.subplots(figsize=[10, 10])
 
 ax.scatter(stars['x'][bright_stars], stars['y'][bright_stars],
-           s=marker_size, color='k')
+           s=marker_size, color='b')
 
 angle = np.pi - field_of_view_degrees / 360.0 * np.pi
 limit = np.sin(angle) / (1.0 - np.cos(angle))
 
 ax.set_xlim(-limit, limit)
 ax.set_ylim(-limit, limit)
-ax.set_xlabel('Degrees')
-ax.set_ylabel('Degrees')
-ax.set_title('Starmap from {}'.format(location))
+ax.set_xlabel('Yaw (Degrees)')
+ax.set_ylabel('Pitch (Degrees)')
+ax.set_title('Starmap from location {} in Heliocentric Frame'.format(location))
 fig.savefig('starmap.png')
