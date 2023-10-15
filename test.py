@@ -110,14 +110,14 @@ def main() -> None:
     return
 
 if __name__ == "__main__":
-    main()
+    # main()
     # T = 5760
     
-    # t = (spconst.pi) / const.ROT_V_EARTH
-    # T = t / (22/3)
-    # print(T)
+    t = (2 *spconst.pi) / const.ROT_V_EARTH
+    T = t / 15
+    print(T)
     
-    # a = (T**2 * const.MU_EARTH / (4 * spconst.pi**2))**(1/3)
-    # h = (a - const.R_EARTH) / 1000
+    a = (T**2 * const.MU_EARTH / (4 * spconst.pi**2))**(1/3)
+    h = (a - const.R_EARTH) / 1000
     
-    # print(f"Altitude: {h} km")
+    print(f"Altitude: {h} km")
