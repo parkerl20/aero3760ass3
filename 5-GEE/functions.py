@@ -157,14 +157,16 @@ def S2A_NDVI(start_date: str, end_date: str):
     locations = ee.FeatureCollection([
         ee.Feature(ee.Geometry.Point([146.9211, -31.2532]), {'name': 'NSW Centre'}),
         ee.Feature(ee.Geometry.Point([151.2093, -33.8688]), {'name': 'Sydney'}),
-        ee.Feature(ee.Geometry.Point([152.1895, -30.8487]), {'name': 'Carrai Creek'})
+        ee.Feature(ee.Geometry.Point([152.1895, -30.8487]), {'name': 'Carrai Creek'}),
+        ee.Feature(ee.Geometry.Point([151.2642, -33.6184]), {'name': 'Ku ring gai chase park'})
     ])
 
     # Get NDVI values 
     ndvi_values = extract_ndvi_values(mean_ndvi, locations)
+    print(ndvi_values)
 
     # Write the NDVI values to a csv
-    write_to_csv(ndvi_values, 'ndvi_values.csv')
+    write_to_csv(ndvi_values, 'ndvi_values.csv', 'NDVI Index')
 
     return Map
 
@@ -353,23 +355,29 @@ def fires():
     return Map
 
 
-def extract_ndvi_values(image, locations, scale=10):
-    # Takes the NDVI calculation of given locations
+def extract_ndvi_values(image, feature_collection):
+    # Get a feature collection from the imnage
+    sampled_points = image.select(['NDVI']).sampleRegions(
+        collection=feature_collection, 
+        properties=['name'], 
+        scale=10  
+    )
+    
+    # Convert the feature collection to a list and evaluate it.
+    info = sampled_points.getInfo()['features']
+    
+    # Extract NDVI values from the returned info and store them in a dictionary.
     ndvi_values = {}
-    for loc in locations.getInfo()['features']:
-        loc_name = loc['properties']['name']
-        coords = loc['geometry']['coordinates']
-        point = ee.Geometry.Point(coords)
-        ndvi_value = image.reduceRegion(ee.Reducer.mean(), point, scale).get('NDVI').getInfo()
-        ndvi_values[loc_name] = ndvi_value
+    for feat in info:
+        ndvi_values[feat['properties']['name']] = feat['properties']['NDVI']
+        
     return ndvi_values
 
 
-
-def write_to_csv(data, filename):
-    # Writes band data to a csv for better comparison and viewing
-    with open(filename, mode='w', newline='', encoding='utf-8') as file:
+def write_to_csv(data, filename, band):
+    # Writes band data to a csv
+    with open(filename, mode='w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow(["Location", "NDVI"])  # Writing headers
-        for location, ndvi in data.items():
-            writer.writerow([location, ndvi])
+        writer.writerow(["Location", band])  # Writing headers
+        for location, value in data.items():
+            writer.writerow([location, value])
