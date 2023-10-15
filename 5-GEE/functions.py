@@ -2,6 +2,7 @@ import ee
 import os
 import webbrowser
 import geemap
+import csv
 
 def initialise_credentials():
     # Initialise credentials
@@ -88,6 +89,7 @@ def initial_map():
 
     return Map
 
+
 def S2A(start_date: str, end_date: str):
     # Get the geometry of New South Wales
     nsw = ee.FeatureCollection("FAO/GAUL/2015/level1").filter(
@@ -115,6 +117,54 @@ def S2A(start_date: str, end_date: str):
     Map = geemap.Map() 
     Map.set_center(146.9211, -31.2532, 6) # Center of nsw
     Map.add_ee_layer(dataset.mean(), visualization, 'Infrared')
+
+    return Map
+
+
+def S2A_NDVI(start_date: str, end_date: str):
+    # Get the geometry of New South Wales
+    nsw = ee.FeatureCollection("FAO/GAUL/2015/level1").filter(
+            ee.Filter.eq('ADM1_NAME', 'New South Wales')
+    )
+ 
+   # Sentinel-2A satellite
+    dataset = (
+        ee.ImageCollection('COPERNICUS/S2_SR')
+        .filterBounds(nsw)
+        .filterDate(start_date, end_date)
+        # Pre-filter to get less cloudy granules.
+        .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
+        .map(mask_s2_clouds)
+        .map(calculate_ndvi) # Calculates the NDVI index
+    )
+
+    # Selecting NDVI
+    mean_ndvi = dataset.mean().select('NDVI')
+
+    # Visualisation parameter
+    ndvi_vis = {
+        'min': -1,
+        'max': 1,
+        'palette': ['blue', 'white', 'green']
+    }
+
+    # Map initialisation
+    Map = geemap.Map() 
+    Map.set_center(146.9211, -31.2532, 6) # Center of nsw
+    Map.add_ee_layer(mean_ndvi, ndvi_vis, 'NDVI')
+
+    # Locations to take NDVI data
+    locations = ee.FeatureCollection([
+        ee.Feature(ee.Geometry.Point([146.9211, -31.2532]), {'name': 'NSW Centre'}),
+        ee.Feature(ee.Geometry.Point([151.2093, -33.8688]), {'name': 'Sydney'}),
+        ee.Feature(ee.Geometry.Point([152.1895, -30.8487]), {'name': 'Carrai Creek'})
+    ])
+
+    # Get NDVI values 
+    ndvi_values = extract_ndvi_values(mean_ndvi, locations)
+
+    # Write the NDVI values to a csv
+    write_to_csv(ndvi_values, 'ndvi_values.csv')
 
     return Map
 
@@ -180,3 +230,146 @@ def surface_temperature():
     Map.addLayer(dataset, visualization, 'Elevation')
 
     return Map
+
+
+def calculate_ndvi(image):
+    # Calculates the NDVI index, which is a function of both the NIR and RED bands
+    ndvi = image.normalizedDifference(['B8', 'B4']).rename('NDVI')
+    return image.addBands(ndvi)
+
+
+def dynamic_world():
+    # Construct a collection of corresponding Dynamic World and Sentinel-2 for
+    # inspection. Filter the DW and S2 collections by region and date.
+    START = ee.Date('2021-04-02')
+    END = START.advance(1, 'day')
+
+    # Get the geometry of New South Wales
+    nsw = ee.FeatureCollection("FAO/GAUL/2015/level1").filter(
+            ee.Filter.eq('ADM1_NAME', 'New South Wales')
+    )
+
+    col_filter = ee.Filter.And(
+        ee.Filter.bounds(nsw),
+        ee.Filter.date(START, END),
+    )
+
+    dw_col = ee.ImageCollection('GOOGLE/DYNAMICWORLD/V1').filter(col_filter)
+    s2_col = ee.ImageCollection('COPERNICUS/S2').filter(col_filter)
+
+    # Join corresponding DW and S2 images (by system:index).
+    dw_s2_col = ee.Join.saveFirst('s2_img').apply(
+        dw_col,
+        s2_col,
+        ee.Filter.equals(leftField='system:index', rightField='system:index'),
+    )
+
+    # Extract an example DW image and its source S2 image.
+    dw_image = ee.Image(dw_s2_col.first())
+    s2_image = ee.Image(dw_image.get('s2_img'))
+
+    # Create a visualization that blends DW class label with probability.
+    # Define list pairs of DW LULC label and color.
+    CLASS_NAMES = [
+        'water',
+        'trees',
+        'grass',
+        'flooded_vegetation',
+        'crops',
+        'shrub_and_scrub',
+        'built',
+        'bare',
+        'snow_and_ice',
+    ]
+
+    VIS_PALETTE = [
+        '419bdf',
+        '397d49',
+        '88b053',
+        '7a87c6',
+        'e49635',
+        'dfc35a',
+        'c4281b',
+        'a59b8f',
+        'b39fe1',
+    ]
+
+    # Create an RGB image of the label (most likely class) on [0, 1].
+    dw_rgb = (
+        dw_image.select('label')
+        .visualize(min=0, max=8, palette=VIS_PALETTE)
+        .divide(255)
+    )
+
+    # Get the most likely class probability.
+    top1_prob = dw_image.select(CLASS_NAMES).reduce(ee.Reducer.max())
+
+    # Create a hillshade of the most likely class probability on [0, 1]
+    top1_prob_hillshade = ee.Terrain.hillshade(top1_prob.multiply(100)).divide(255)
+
+    # Combine the RGB image with the hillshade.
+    dw_rgb_hillshade = dw_rgb.multiply(top1_prob_hillshade)
+
+    # Display the Dynamic World visualization with the source Sentinel-2 image.
+    Map = geemap.Map()
+    Map.set_center(20.6729, 52.4305, 12)
+    Map.add_layer(
+        s2_image,
+        {'min': 0, 'max': 3000, 'bands': ['B4', 'B3', 'B2']},
+        'Sentinel-2 L1C',
+    )
+    Map.add_layer(
+        dw_rgb_hillshade,
+        {'min': 0, 'max': 0.65},
+        'Dynamic World V1 - label hillshade',
+    )
+
+    return Map
+
+
+def fires():
+    # Get the geometry of New South Wales
+    nsw = ee.FeatureCollection("FAO/GAUL/2015/level1").filter(
+            ee.Filter.eq('ADM1_NAME', 'New South Wales')
+    )
+
+    dataset = (
+        ee.ImageCollection('FIRMS')
+        .filterBounds(nsw)
+        .filterDate('2019-12-01', '2020-02-01')
+    )
+    fires = dataset.select('T21')
+    firesVis = {
+        "min": 325.0,
+        "max": 400.0,
+        "palette": ['red', 'orange', 'yellow'],
+    }
+
+    # Map initialisation
+    Map = geemap.Map() 
+    Map.set_center(146.9211, -31.2532, 6) # Center of nsw
+    Map.addLayer(fires, firesVis, 'Fires')
+
+    return Map
+
+
+def extract_ndvi_values(image, locations, scale=10):
+    # Takes the NDVI calculation of given locations
+    ndvi_values = {}
+    for loc in locations.getInfo()['features']:
+        loc_name = loc['properties']['name']
+        coords = loc['geometry']['coordinates']
+        point = ee.Geometry.Point(coords)
+        ndvi_value = image.reduceRegion(ee.Reducer.mean(), point, scale).get('NDVI').getInfo()
+        ndvi_values[loc_name] = ndvi_value
+    return ndvi_values
+
+
+
+def write_to_csv(data, filename):
+    # Writes band data to a csv for better comparison and viewing
+    with open(filename, mode='w', newline='', encoding='utf-8') as file:
+        writer = csv.writer(file)
+        writer.writerow(["Location", "NDVI"])  # Writing headers
+        for location, ndvi in data.items():
+            writer.writerow([location, ndvi])

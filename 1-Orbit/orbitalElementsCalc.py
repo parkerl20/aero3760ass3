@@ -9,6 +9,7 @@ sys.path.append(grandparent_directory)
 
 from spacesim import constants as const
 import numpy as np
+import matplotlib.pyplot as plt
 
 def orbitalParamaters(lat, lon, swathe_width):
     # For one satellite
@@ -37,13 +38,14 @@ def minimumAltitude(swathe_width, alpha):
     return altitude + const.R_EARTH
 
 
-def repeatingGroundTrackAltitude(j, k, i):
+def repeatingGroundTrackAltitude(j, k, i, e):
     """Calculates the altitude required to have a satellite with a groundtrack that repeats
 
     Args:
         j (float): Number of orbits per day (should be around 14 or 15 for LEO)
         k (float): Number of days after which the orbit ground track repeats
         i (float): Inclination of the orbit
+        e (float): Eccentricity of the orbit
 
     Returns:
         altitude (float): Altitude of satellite
@@ -59,13 +61,13 @@ def repeatingGroundTrackAltitude(j, k, i):
     L_dot = 360     # Degrees per sidereal day
 
     # Rate of change of the ascending node
-    omega_dot = -2 * k_2 * (alt_0**(-7/2)) * np.cos(np.deg2rad(i))
+    omega_dot = -2 * k_2 * (alt_0**(-7/2)) * np.cos(np.deg2rad(i)) * (1 - e**2)**(-2)
 
     # Rate of change of perigee
-    w_dot = k_2 * (alt_0**(-7/2)) * (5 * (np.cos(np.deg2rad(i))**2) - 1)
+    w_dot = k_2 * (alt_0**(-7/2)) * (5 * (np.cos(np.deg2rad(i))**2) - 1) * (1 - e**2)**(-2)
 
     # Rate of change of mean anomaly
-    M_dot = k_2 * (alt_0**(-7/2)) * (3 * (np.cos(np.deg2rad(i))**2) - 1)
+    M_dot = k_2 * (alt_0**(-7/2)) * (3 * (np.cos(np.deg2rad(i))**2) - 1) * (1 - e**2)**(-3/2)
 
     # Mean angular motion
     n = (j/k) * (L_dot - omega_dot) - (w_dot + M_dot)
@@ -77,10 +79,134 @@ def repeatingGroundTrackAltitude(j, k, i):
     return alt
 
 
+def choosingOrbitsPerDay(a_min, i, j, k):
+    # Array to record each altitude 
+    alt = []
+
+    # Call the repeatingGroundTrackAltitude function for each number of j orbits in a day
+    for orbit_num in range(len(j)):
+        alt.append((repeatingGroundTrackAltitude(j[orbit_num], k, i, e=0) - const.R_EARTH)/1000)
+
+    # Select the orbit per day number that is nearest above coverage
+    counter = 0
+    while(1):
+        if(alt[counter] < a_min - const.R_EARTH):
+            break
+        else:
+            counter += 1
+    j_final = j[counter-1]
+
+    # Make lables readable 
+    Set_Label_Sizes()
+
+    # Create a figure and axis
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    # Add labels and title
+    ax.set_xlabel('Number of Orbits in a Day (j)')
+    ax.set_ylabel('Altitude (km)')
+    ax.set_title('Altitude vs. Number of Orbits in a Day for repeatable ground track')
+    
+    # Add a grid for better readability
+    ax.grid(True, linestyle='--', alpha=0.7)
+
+    # Add horizontal lines to each point
+    for altitude in alt:
+        ax.hlines(altitude, xmin=min(j), xmax=max(j), colors='r', linewidth=2.5)
+
+    # Minimum altitude for coverage
+    a_min = (a_min - const.R_EARTH)
+    ax.hlines(a_min, xmin=min(j), xmax=max(j), colors='g', linestyles='dotted', label='Altitude for coverage requirements', linewidth=2.5)
+
+    # Plot the results of different altitudes
+    ax.scatter(j, alt, label='Altitude (km)', color='b', marker='o', s=100)
+
+    # Show legend
+    ax.legend()
+
+    # Display the plot
+    plt.show()
+
+    return j_final
+
+
+def choosingRepeatEccentricity(a_min, i, j, k):
+    # Array to test different eccentricities 
+    e = np.arange(0.0, 1.0, 0.1)
+
+    # Array to keep track of altitudes
+    alt = []
+
+    # Call the repeatingGroundTrackAltitude function for each number of j orbits in a day
+    for eccentricity in range(len(e)):
+        alt.append((repeatingGroundTrackAltitude(j, k, i, e[eccentricity]) - const.R_EARTH)/1000)
+    
+    print(len(e))
+
+    # # Make lables readable 
+    # Set_Label_Sizes()
+
+    # # Create a figure and axis
+    # fig, ax = plt.subplots(figsize=(8, 6))
+
+    # # Add labels and title
+    # ax.set_xlabel('Number of Orbits in a Day (j)')
+    # ax.set_ylabel('Altitude (km)')
+    # ax.set_title('Altitude vs. Number of Orbits in a Day for repeatable ground track')
+    
+    # # Add a grid for better readability
+    # ax.grid(True, linestyle='--', alpha=0.7)
+
+    # # Add horizontal lines to each point
+    # for altitude in alt:
+    #     ax.hlines(altitude, xmin=min(j), xmax=max(j), colors='r', linewidth=2.5)
+
+    # # Minimum altitude for coverage
+    # a_min = (a_min - const.R_EARTH)
+    # ax.hlines(a_min, xmin=min(j), xmax=max(j), colors='g', linestyles='dotted', label='Altitude for coverage requirements', linewidth=2.5)
+
+    # # Plot the results of different altitudes
+    # ax.scatter(j, alt, label='Altitude (km)', color='b', marker='o', s=100)
+
+    # # Show legend
+    # ax.legend()
+
+    # # Display the plot
+    # plt.show()
+
 def flyOverRightAscension(lat, lon, i):
+    """Calculates the right ascension necessary to travel directly over a ground station point
+
+    Args:
+        lat (float): Latitude of fly over point
+        lon (float): Longitude of fly over point
+        i (degree): Inclination of orbit
+
+    Returns:
+        rt_asc: Right ascension of orbit
+    """
+    # Convert to radians
     lat = np.deg2rad(lat)
     i = np.deg2rad(i)
 
+    # Calculate right ascension. There are 2 values for highest and lowest point inclination point
     rt_asc1 = lon - np.rad2deg(np.arcsin((np.arctan2(lat, 1))/(np.arctan2(i, 1))))
     rt_asc2 = lon - (np.rad2deg(np.arcsin((np.arctan2(lat, 1))/(np.arctan2(i, 1)))) - 180.0)
-    return rt_asc1
+
+    # Selects rt_asc based on if the orbit is prograde or retrograde
+    rt_asc = rt_asc1 if (i > 0) else rt_asc2
+
+    return rt_asc
+
+
+def Set_Label_Sizes():
+    """Generate global paramaters for plotting
+    """
+    # Set the title, axis labels, axis ticks, and label sizes
+    plt.rcParams['axes.titlesize'] = 28     # Increase title size
+    plt.rcParams['axes.labelsize'] = 24     # Increase axis label size
+    plt.rcParams['xtick.labelsize'] = 20    # Increase x-tick label size
+    plt.rcParams['ytick.labelsize'] = 20    # Increase y-tick label size
+    plt.rcParams['xtick.major.size'] = 15   # Increase x-tick size
+    plt.rcParams['ytick.major.size'] = 15   # Increase y-tick size
+    plt.rcParams['legend.fontsize'] = 18    # Increase the legend font size
