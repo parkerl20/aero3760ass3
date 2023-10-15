@@ -68,33 +68,33 @@ def main() -> None:
     propagation_time = 60 * 60 * 24
     
     #---------------- Create single satellite
-    # tle_file = "./rsc/TLE/navstar_43.txt"
-    # satellite = None
+    tle_file = "./rsc/TLE/navstar_43.txt"
+    satellite = None
     
-    # with open(tle_file, "r") as f:
-    #     name = f.readline().strip()
-    #     tle_line_1 = f.readline().strip()
-    #     tle_line_2 = f.readline().strip()
+    with open(tle_file, "r") as f:
+        name = f.readline().strip()
+        tle_line_1 = f.readline().strip()
+        tle_line_2 = f.readline().strip()
         
-    #     satellite = sat.Satellite(name, tle_line_1, tle_line_2, earth)
-    #     print(satellite)
+        satellite = sat.Satellite(name, tle_line_1, tle_line_2, earth)
+        print(satellite)
         
-    # earth_orbital_system.add_orbit(satellite.orbit)    
+    earth_orbital_system.add_orbit(satellite.orbit)    
     
     
-    # # ---------------- Ground station demo
-    # sydney_location = (-33.8688, 151.2093, 0)
-    # sydney = gs.OrbitObservatory("Sydney", sydney_location)
+    # ---------------- Ground station demo
+    sydney_location = (-33.8688, 151.2093, 0)
+    sydney = gs.OrbitObservatory("Sydney", sydney_location)
     
-    # sydney_obs = sydney.observe_orbit(
-    #     satellite.orbit,
-    #     propagation_time,
-    #     analytical=True
-    # )
+    sydney_obs = sydney.observe_orbit(
+        satellite.orbit,
+        propagation_time,
+        analytical=True
+    )
 
-    # start = sydney_obs.visibility_period[0][0]
-    # end = sydney_obs.visibility_period[0][1]
-    # print(end - start)
+    start = sydney_obs.visibility_period[0][0]
+    end = sydney_obs.visibility_period[0][1]
+    print(end - start)
     
     #---------------- Create multiple satellites
     tle_files = [
@@ -128,16 +128,16 @@ def main() -> None:
     
     plt.show()
     
-    # earth_pl = system_plotter.plot3d(
-    #     propagation_time
-    # )
+    earth_pl = system_plotter.plot3d(
+        propagation_time
+    )
     
-    # # Add space background
-    # cubemap = pv_ex.download_cubemap_space_16k()
-    # earth_pl.add_actor(cubemap.to_skybox())
+    # Add space background
+    cubemap = pv_ex.download_cubemap_space_16k()
+    earth_pl.add_actor(cubemap.to_skybox())
     
     
-    # earth_pl.show()
+    earth_pl.show()
     
 
     return
