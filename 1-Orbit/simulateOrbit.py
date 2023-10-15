@@ -43,7 +43,7 @@ def simulateOrbit(a, e, i, rt_asc, arg_p, theta) -> None:
     orbit4 = orb.Orbit(a, e, i, rt_asc+270.0, arg_p, theta, earth, epoch, "4th Satellite")
     
     # Params
-    propagation_time = 60 * 60 * 24
+    propagation_time = 60 * 60 * 60
 
     # Results
     # result_r1, result_v1, result_t1 = orbit1.propagate(propagation_time)

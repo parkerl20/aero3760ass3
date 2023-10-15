@@ -38,8 +38,10 @@ def mainOrbit():
    # Chooses 15 orbits a day as the ideal number
    a = repeatingGroundTrackAltitude(j, SINGLE_DAY, i, e=0.0)
    print((a - 6378130)/1000)
-   # Choose ideal eccentricity for coverage
-   choosingRepeatEccentricity(a_min, i, j, SINGLE_DAY)
+
+   # Choose ideal eccentricity for minimum altitude that still meets coverage requirements
+   choosingRepeatEccentricity(a_min, i, j, SINGLE_DAY)   
+   e = 0 # Still work do be done on choosing eccentricity, so just a circular orbit for now (still works correctly just not optimised)
    
    # Coverage checking
    if(a < a_min):
