@@ -46,8 +46,7 @@ def simulateOrbit(a, e, i, rt_asc, arg_p, theta) -> None:
     propagation_time = 60 * 60 * 24
 
     # Results
-    result_r1, result_v1, result_t1 = orbit1.propagate(propagation_time)
-    # result_r2, result_v2, result_t2 = orbit2.propagate(propagation_time)
+    # result_r1, result_v1, result_t1 = orbit1.propagate(propagation_time)
 
     # Adding the orbit to a system
     earth_orbital_system = orbsys.OrbitalSystem(earth)
@@ -64,7 +63,16 @@ def simulateOrbit(a, e, i, rt_asc, arg_p, theta) -> None:
         propagation_time,
         map_img="./rsc/bluemarble.jpg"
     )
-    plotter.plot3d(propagation_time).show()
+
+    # Plot 3D orbit
+    earth_pl = plotter.plot3d(
+        propagation_time
+    )
+
+    # Add space background
+    cubemap = pv_ex.download_cubemap_space_16k()
+    earth_pl.add_actor(cubemap.to_skybox())
+    earth_pl.show()
     
     plt.show()
 
