@@ -1,4 +1,4 @@
-
+import matplotlib.pyplot as plt
 import numpy as np
 
 '''
@@ -49,7 +49,7 @@ def nlls_gps_weights(vector_obs, ref_vectors_lgcv, att_init):
     """
     
     # Initialise arrays
-    att_store = np.array(att_init)
+    att_store = np.array([att_init])
 
 
     # fx = np.zeros_like(pseudo_sat)
@@ -59,7 +59,7 @@ def nlls_gps_weights(vector_obs, ref_vectors_lgcv, att_init):
 
     # Initial iteration params
     i = 0
-    max_iter = 200
+    max_iter = 100
     tol =  1e-8
     datt = 100
     att_opt = att_init
@@ -92,6 +92,7 @@ def nlls_gps_weights(vector_obs, ref_vectors_lgcv, att_init):
 
         print(dy)
         print("dy", dy.shape)
+        dy = dy.reshape(dy.size)
 
         # Building H matrix for each vector measurement
         
@@ -141,19 +142,29 @@ def nlls_gps_weights(vector_obs, ref_vectors_lgcv, att_init):
         # H = np.array([H,H,H])
 
         print((np.linalg.inv(H.T @ W @ H) @ H.T @ W).shape)
-        print(dy.shape)
+        print(dy)
         datt = np.linalg.inv(H.T @ W @ H) @ H.T @ W @ dy
+
+        # this will probs output radians
+        print(datt)
+
+        datt_deg = np.rad2deg(datt)
+        print(datt_deg)
+
+        
+
 
         # confused about dimension sizing
         # datt = datt.reshape((att_opt.shape))
         
 
         if np.sum(np.abs(datt) > tol):
+            print(att_opt)
             att_opt = att_opt + datt.T
+            print(att_opt)
+            
             i +=1
-            print((att_opt).flatten().shape)
-            print(att_store.shape)
-            att_store = np.append(att_store, att_opt.flatten(), axis = 0)
+            att_store = np.append(att_store,[att_opt], axis = 0)
         else:
             break
     
@@ -172,6 +183,13 @@ att_data = np.array([[10,31,-41],[9,30,-47],[14,32,-44]])
 vector_obs = np.array([[-0.0879, 0.5242, -0.6383],[-0.3319, 0.3281, 0.2055], [0.8465, 0.0540, 0.6485]])
 ref_vectors_lgcv = np.array([[0.2,0.7,-0.4],[0.1,0.3,0.4],[0.7,-0.8,0.1] ])
 # needs to be in radians
-nlls_gps_weights(vector_obs, ref_vectors_lgcv, att_init)
+att_opt, pdop, att_store, i = nlls_gps_weights(vector_obs, ref_vectors_lgcv, att_init)
 
+print("Final attitude estimation", att_opt)
+print(att_store.shape)
+plt.figure()
+plt.plot(range(len(att_store)), att_store[:,0])
+plt.plot(range(len(att_store)), att_store[:,1])
+plt.plot(range(len(att_store)), att_store[:,2])
+plt.show()
 # justifying nlls
