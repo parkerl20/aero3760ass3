@@ -1,6 +1,7 @@
 from spacesim import celestial_body as cb
 from spacesim import orbital_transforms as ot
 from spacesim import time_util as tu
+from spacesim import sensor
 
 from typing import Callable
 import scipy.integrate as integrate
@@ -37,7 +38,8 @@ class Orbit():
         body: cb.CelestialBody,
         epoch: dt.datetime,
         name: str = None,
-        orb_dyn: Callable[[float, np.ndarray, "Orbit"], np.ndarray] = None, colour: str = None
+        orb_dyn: Callable[[float, np.ndarray, "Orbit"], np.ndarray] = None,
+        colour: str = None
     ) -> None:
         """Initializes an orbit object.
         
@@ -451,3 +453,66 @@ class Orbit():
         theta = theta if M_e < math.pi else 2 * math.pi - theta
         
         return math.degrees(theta) if degrees else theta
+    
+
+class RealTimeSatellite(Orbit):
+    """An orbit that can be iterated through in real time.
+    
+    A real time satellite can carry sensors.
+    """
+    
+    def __init__(
+        self,
+        a: float,
+        e: float,
+        i: float,
+        rt_asc: float,
+        arg_p: float,
+        true_anomaly: float,
+        body: cb.CelestialBody,
+        epoch: dt.datetime,
+        *,
+        name: str = None,
+        orb_dyn: Callable[[float, np.ndarray, Orbit], np.ndarray] = None,
+        colour: str = None,
+        propagation_length: float = 20.0,
+        propagation_step: float = 1.0
+    ) -> None:
+        """Initializes a RealTimeOrbit object.
+        
+        The orbit related arguments define the initial position of
+        the orbit.
+        
+        Args:
+            a (float): The semi-major axis of the orbit in meters.
+            e (float): The eccentricity of the orbit.
+            i (float): The inclination of the orbit in degrees.
+            rt_asc (float): The right ascension of the orbit in degrees.
+            arg_p (float): The argument of perigee of the orbit in degrees.
+            theta (float): The true anomaly of the orbit in degrees.
+            body (cb.Planet): The body being orbitted.
+            epoch (dt.datetime): The epoch of the start of the orbit.
+            name (str, optional): The name of the orbit. Defaults to None.
+            orb_dyn (Callable, optional): A function that simulates the 
+                dynamics of the orbit.
+            If it is None, then a default function is used. Defaults to None.
+            colour (str, optional): The colour of the orbit for plotting. 
+                Defaults to None.
+        """
+        super().__init__(a, e, i, rt_asc, arg_p, true_anomaly, body, epoch, name, orb_dyn, colour)
+        
+        self.current_r_eci = self.init_r_eci
+        self.current_v_eci = self.init_v_eci
+        
+        self.propagation_length = propagation_length
+        self.propagation_step = propagation_step
+        
+        self.sensors: list[sensor.Sensor] = []
+        
+        return
+    
+    def __iter__(self):
+        return self
+    
+    def __next__(self):
+        pass
