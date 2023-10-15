@@ -125,6 +125,8 @@ class ExtendedKalmanFilter():
         state_est = trans_mtx @ self.curr_state_est
         est_covar = trans_mtx @ self.est_covar @ trans_mtx.T + self.process_covar
         
+        # print(self.est_covar, end="\n\n")
+        
         innovation = measurement - observation_matrix @ state_est		# state residual
         innovation_covar = observation_matrix @ est_covar @ observation_matrix.T + observation_covariance
         kalman_gain = est_covar @ observation_matrix.T @ np.linalg.inv(innovation_covar)

@@ -117,6 +117,8 @@ def main() -> None:
     earth_mesh = pv_ex.planets.load_earth(radius=const.R_EARTH)
     earth_tex = pv_ex.load_globe_texture()
     
+    np.set_printoptions(linewidth=np.inf)
+    
     earth = cb.CelestialBody(
         "Earth",
         const.M_EARTH,
@@ -171,7 +173,7 @@ def main() -> None:
         (r_obv[:,obv_index].flatten(), v_1.flatten())
     ).reshape((6, 1))
     
-    process_noise = 0.1 * np.eye(6)
+    process_noise = 5 * np.eye(6)
     
     ekf = est.ExtendedKalmanFilter(
         transition_matrix_func,
