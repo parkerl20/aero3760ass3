@@ -148,7 +148,7 @@ class RealTimeSatellite(orb.Orbit):
             If it is None, then a default function is used. Defaults to None.
             colour (str, optional): The colour of the orbit for plotting. 
                 Defaults to None.
-        """
+        """        
         super().__init__(a, e, i, rt_asc, arg_p, true_anomaly, body, epoch, name, orb_dyn, colour)
         
         self.current_r_eci = self.init_r_eci
@@ -158,19 +158,21 @@ class RealTimeSatellite(orb.Orbit):
         self.propagation_length = propagation_length
         self.propagation_step = propagation_step
         
-        # Dictionary of sensor and time of most recent sample
+        # Dictionary of sensor and the last time they made a measurement
         self.sensors: dict[list[sensor.SatelliteSensor, float]] = dict()
-        # self.algorithms: 
+        self.algorithms: list[SatelliteAlgorithm] = []
         
         return
     
     def attach_sensor(self, sensor: sensor.SatelliteSensor) -> None:
-        sensor_info = [sensor, self.current_time]
+        # -1 causes the sensor to make a measurement on the first iteration
+        sensor_info = [sensor, -1]
         self.sensors[sensor.name] = sensor_info
         return
     
-    def add_algorithm(self) -> None:
-        pass
+    def add_algorithm(self, algorithm: SatelliteAlgorithm) -> None:
+        self.algorithms.append(algorithm)
+        return
     
     def get_sensor(self, name: str) -> sensor.SatelliteSensor:
         return self.sensors[name][0]
@@ -191,6 +193,7 @@ class RealTimeSatellite(orb.Orbit):
             default=self.propagation_step
         )
         
+        # Use events to simulate measurements
         solution = integrate.solve_ivp(
             self.orbit_dynamics,
             t_span,
@@ -203,6 +206,28 @@ class RealTimeSatellite(orb.Orbit):
         v = solution.y[3:6]       
         t = solution.t + self.current_time
         
+        # Simulate sensor measurements
+        for i in range(len(t) - 1):
+            position = r[:, i].flatten()
+            velocity = v[:, i].flatten()
+            time = t[i]
+            
+            sensor_measurements = dict()
+            
+            for sensor_name in self.sensors.keys():
+                sensor, t_measure = self.sensors[sensor_name]
+                t_diff = time - t_measure
+                
+                # Make measurement
+                if t_diff >= sensor.sampling_period():
+                    if sensor(self, position, velocity):
+                        self.sensors[sensor.name][1] = time
+                        sensor_measurements[sensor.name] = sensor
+                
+            # Run algorithms
+            for algorithm in self.algorithms:
+                algorithm(self, sensor_measurements)
+                    
         self.current_r_eci = r[:, -1].flatten()
         self.current_v_eci = v[:, -1].flatten()
         self.current_time = t[-1]

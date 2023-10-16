@@ -1,5 +1,6 @@
 from spacesim import orbit as orb
-from typing import Callable
+from typing import Any, Callable
+import numpy as np
 
 
 class SatelliteSensor():
@@ -15,8 +16,9 @@ class SatelliteSensor():
 
         Args:
             name (str): The name of the sensor.
-            simulator (Callable[[SatelliteSensor, orb.Orbit], any]): A function that
-                simulates the sensor making measurements.
+            simulator (Callable[[SatelliteSensor, orb.Orbit, np.ndarray, np.ndarray], bool]): A function that
+                simulates the sensor making measurements. Returns True if the sensor
+                makes a measurement, and False if it does not.
             frequency (float): The operating frequency of the sensor. 
                 Defaults to None. 
         """
@@ -39,3 +41,11 @@ class SatelliteSensor():
             return 0
         else:
             return 1 / self.frequency
+    
+    def __call__(
+        self,
+        orbit: orb.Orbit,
+        r: np.ndarray,
+        v: np.ndarray,
+    ) -> bool:
+        return self.simulator(self, orbit, r, v)
