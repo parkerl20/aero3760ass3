@@ -420,8 +420,7 @@ class Orbit():
         self._orbit_t = t_steps
         
         return r, v, t_steps
-            
-    
+               
     @staticmethod
     def mean_to_true_anomaly(
         mean_anomaly: float,
@@ -459,8 +458,9 @@ class RealTimeSatellite(Orbit):
     """An orbit that can be iterated through in real time.
     
     A real time satellite can carry sensors.
+    A real time satellite can perform algorithms
+    that act on the sensor data.
     """
-    
     def __init__(
         self,
         a: float,
@@ -508,20 +508,56 @@ class RealTimeSatellite(Orbit):
         self.propagation_length = propagation_length
         self.propagation_step = propagation_step
         
-        # List of sensor and time of most recent sample
-        self.sensors: list[list[sensor.SatelliteSensor, float]] = []
+        # Dictionary of sensor and time of most recent sample
+        self.sensors: dict[list[sensor.SatelliteSensor, float]] = dict()
+        # self.algorithms: 
         
         return
     
     def attach_sensor(self, sensor: sensor.SatelliteSensor) -> None:
         sensor_info = [sensor, self.current_time]
-        self.sensors.append(sensor_info)
+        self.sensors[sensor.name] = sensor_info
         return
     
-    def __propagate(
+    def add_algorithm(self) -> None:
+        pass
+    
+    def get_sensor(self, name: str) -> sensor.SatelliteSensor:
+        return self.sensors[name][0]
+    
+    def propagate(
         self
     ) -> np.ndarray:
-        pass
+        """Propagates the orbit of a satellite.
+
+        Returns:
+            np.ndarray: The position of the satellite in ECI coordinates.
+        """
+        y0 = np.concatenate((self.current_r_eci, self.current_v_eci)).flatten()
+        t_span = [0, self.propagation_length]
+        
+        max_step = min(
+            (sensor.sampling_period() for sensor, _ in self.sensors),
+            default=self.propagation_step
+        )
+        
+        solution = integrate.solve_ivp(
+            self.orbit_dynamics,
+            t_span,
+            y0,
+            max_step=max_step,
+            args=(self,)
+        )
+        
+        r = solution.y[0:3]
+        v = solution.y[3:6]       
+        t = solution.t + self.current_time
+        
+        self.current_r_eci = r[:, -1].flatten()
+        self.current_v_eci = v[:, -1].flatten()
+        self.current_time = t[-1]
+        
+        return r[:,:-1], v[:,:-1], t[:-1]
     
     def __iter__(self):
         return self

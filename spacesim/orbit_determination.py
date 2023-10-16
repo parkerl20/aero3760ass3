@@ -68,7 +68,6 @@ def herrick_gibbs(
     Returns:
         np.ndarray: The (3 x 1) velocity vector at obv2.
     """
-    # TODO: Check vectors are co-planar
     r1, t1 = obv1
     r2, t2 = obv2
     r3, t3 = obv3

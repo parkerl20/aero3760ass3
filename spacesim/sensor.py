@@ -8,7 +8,7 @@ class SatelliteSensor():
     def __init__(
         self,
         name: str,
-        simulator: Callable[['SatelliteSensor', orb.Orbit], None],
+        simulator: Callable[['SatelliteSensor', 'orb.Orbit'], None],
         frequency: float = None
     ) -> None:
         """A sensor that works on a satellite
