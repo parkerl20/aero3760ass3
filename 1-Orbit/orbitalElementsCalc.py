@@ -131,48 +131,73 @@ def choosingOrbitsPerDay(a_min, i, j, k):
 
 
 def choosingRepeatEccentricity(a_min, i, j, k):
-    # Array to test different eccentricities 
-    e = np.arange(0.0, 1.0, 0.1)
-
     # Array to keep track of altitudes
-    alt = []
+    perigee_radius = []
 
-    # Call the repeatingGroundTrackAltitude function for each number of j orbits in a day
-    for eccentricity in range(len(e)):
-        alt.append((repeatingGroundTrackAltitude(j, k, i, e[eccentricity]) - const.R_EARTH)/1000)
-    
-    print(len(e))
+    # Array to keep track of eccentricities
+    eccentricity = []
+
+    # Converting minimum altitude for coverage for easier manipulation
+    a_min = a_min - const.R_EARTH
+
+    # Tolerance for eccentricity change
+    TOL = 0.005
+
+    # Select the eccentricity that gives the radius at perigee closest to minimum altitude for coverage
+    counter, e = 0, 0
+    while(1):
+        # Semi-major 
+        a = repeatingGroundTrackAltitude(j, k, i, e)
+
+        # Semi-minor
+        b = ((a**2 * (1 - e**2))**(1/2) - const.R_EARTH)/1000
+
+        # Append arrays for plotting
+        perigee_radius.append(b)
+        eccentricity.append(e)
+
+        # Coverage requirement
+        if(b < a_min):
+            e -= TOL    # Gets the eccentricity value just before minimum coverage altitude
+            break
+        else:
+            counter += 1
+            e += TOL
 
     # # Make lables readable 
-    # Set_Label_Sizes()
+    Set_Label_Sizes()
 
     # # Create a figure and axis
-    # fig, ax = plt.subplots(figsize=(8, 6))
+    fig, ax = plt.subplots(figsize=(8, 6))
 
     # # Add labels and title
-    # ax.set_xlabel('Number of Orbits in a Day (j)')
-    # ax.set_ylabel('Altitude (km)')
-    # ax.set_title('Altitude vs. Number of Orbits in a Day for repeatable ground track')
+    ax.set_xlabel('Eccentricity of orbit (degrees)')
+    ax.set_ylabel('Altitude (km)')
+    ax.set_title('Altitude vs. Eccentricity of the orbit')
     
     # # Add a grid for better readability
-    # ax.grid(True, linestyle='--', alpha=0.7)
+    ax.grid(True, linestyle='--', alpha=0.7)
 
     # # Add horizontal lines to each point
-    # for altitude in alt:
-    #     ax.hlines(altitude, xmin=min(j), xmax=max(j), colors='r', linewidth=2.5)
+    for altitude in perigee_radius:
+        ax.hlines(altitude, xmin=min(eccentricity), xmax=max(eccentricity), colors='r', linewidth=2.5)
 
-    # # Minimum altitude for coverage
-    # a_min = (a_min - const.R_EARTH)
-    # ax.hlines(a_min, xmin=min(j), xmax=max(j), colors='g', linestyles='dotted', label='Altitude for coverage requirements', linewidth=2.5)
+    # Minimum altitude for coverage
+    ax.hlines(a_min, xmin=min(eccentricity), xmax=max(eccentricity), colors='g', label='Altitude for coverage requirements', linewidth=2.5)
 
-    # # Plot the results of different altitudes
-    # ax.scatter(j, alt, label='Altitude (km)', color='b', marker='o', s=100)
+    # Finalised eccentricity 
+    ax.hlines(perigee_radius[-1], xmin=min(eccentricity), xmax=max(eccentricity), colors='y', label='Final perigee altitude', linewidth=2.5)
+
+    # Plot the results of different altitudes
+    ax.scatter(eccentricity, perigee_radius, label='Altitude (km)', color='b', marker='o', s=100)
 
     # # Show legend
-    # ax.legend()
+    ax.legend()
 
     # # Display the plot
-    # plt.show()
+    plt.show()
+
+    return e
 
 def flyOverRightAscension(lat, lon, i):
     """Calculates the right ascension necessary to travel directly over a ground station point
