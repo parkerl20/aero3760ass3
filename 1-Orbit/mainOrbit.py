@@ -40,10 +40,6 @@ def mainOrbit():
 
    # Chooses 15 orbits a day as the ideal number
    a = repeatingGroundTrackAltitude(j, SINGLE_DAY, i, e)
-   
-   # Coverage checking
-   if(a < a_min):
-      print("Coverage requirements are not met!")
 
    # Right ascension for a satellite with a required fly over point
    rt_asc = flyOverRightAscension(fly_over["lat"], fly_over["lon"], i)

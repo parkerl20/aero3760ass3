@@ -141,7 +141,7 @@ def choosingRepeatEccentricity(a_min, i, j, k):
     a_min = a_min - const.R_EARTH
 
     # Tolerance for eccentricity change
-    TOL = 0.005
+    TOL = 0.001
 
     # Select the eccentricity that gives the radius at perigee closest to minimum altitude for coverage
     counter, e = 0, 0
@@ -151,13 +151,14 @@ def choosingRepeatEccentricity(a_min, i, j, k):
 
         # Semi-minor
         b = ((a**2 * (1 - e**2))**(1/2) - const.R_EARTH)/1000
+        rp = (a * (1 - e) - const.R_EARTH)/1000
 
         # Append arrays for plotting
-        perigee_radius.append(b)
+        perigee_radius.append(rp)
         eccentricity.append(e)
 
         # Coverage requirement
-        if(b < a_min):
+        if(rp < a_min):
             e -= TOL    # Gets the eccentricity value just before minimum coverage altitude
             break
         else:

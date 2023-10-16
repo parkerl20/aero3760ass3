@@ -37,10 +37,10 @@ def simulateOrbit(a, e, i, rt_asc, arg_p, theta) -> None:
     epoch = datetime(2023, 1, 1)
     
     # Create orbit
-    orbit1 = orb.Orbit(a, e, i, rt_asc, arg_p, theta, earth, epoch, "1st Satellite")
-    orbit2 = orb.Orbit(a, e, i, rt_asc+90.0, arg_p, theta, earth, epoch, "2nd Satellite")
-    orbit3 = orb.Orbit(a, e, i, rt_asc+180.0, arg_p, theta, earth, epoch, "3rd Satellite")
-    orbit4 = orb.Orbit(a, e, i, rt_asc+270.0, arg_p, theta, earth, epoch, "4th Satellite")
+    orbit1 = orb.Orbit(a, e, i, rt_asc, arg_p, theta, earth, epoch, "1st Satellite", colour="red")
+    orbit2 = orb.Orbit(a, e, i, rt_asc+90.0, arg_p, theta, earth, epoch, "2nd Satellite", colour="blue")
+    orbit3 = orb.Orbit(a, e, i, rt_asc+180.0, arg_p, theta, earth, epoch, "3rd Satellite", colour="green")
+    orbit4 = orb.Orbit(a, e, i, rt_asc+270.0, arg_p, theta, earth, epoch, "4th Satellite", colour="yellow")
     
     # Params
     propagation_time = 60 * 60 * 60
