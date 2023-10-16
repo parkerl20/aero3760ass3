@@ -1,8 +1,10 @@
 from spacesim import orbit as orb
 from spacesim import celestial_body as cb
 from spacesim import time_util as tu
+from spacesim import sensor
 
 from typing import Callable
+from scipy import integrate
 import datetime as dt
 import numpy as np
 import math
@@ -66,3 +68,118 @@ class Satellite():
             f"{intl_des_str}: {self.intl_designator}\n"
             f"{self.orbit}"
         )
+
+class SatelliteAlgorithm():
+    def __init__(self) -> None:
+        pass        
+    
+class RealTimeSatellite(orb.Orbit):
+    """An orbit that can be iterated through in real time.
+    
+    A real time satellite can carry sensors.
+    A real time satellite can perform algorithms
+    that act on the sensor data.
+    """
+    def __init__(
+        self,
+        a: float,
+        e: float,
+        i: float,
+        rt_asc: float,
+        arg_p: float,
+        true_anomaly: float,
+        body: cb.CelestialBody,
+        epoch: dt.datetime,
+        *,
+        name: str = None,
+        orb_dyn: Callable[[float, np.ndarray, 'RealTimeSatellite'], np.ndarray] = None,
+        colour: str = None,
+        propagation_length: float = 20.0,
+        propagation_step: float = 1.0
+    ) -> None:
+        """Initializes a RealTimeOrbit object.
+        
+        The orbit related arguments define the initial position of
+        the orbit.
+        
+        Args:
+            a (float): The semi-major axis of the orbit in meters.
+            e (float): The eccentricity of the orbit.
+            i (float): The inclination of the orbit in degrees.
+            rt_asc (float): The right ascension of the orbit in degrees.
+            arg_p (float): The argument of perigee of the orbit in degrees.
+            theta (float): The true anomaly of the orbit in degrees.
+            body (cb.Planet): The body being orbitted.
+            epoch (dt.datetime): The epoch of the start of the orbit.
+            name (str, optional): The name of the orbit. Defaults to None.
+            orb_dyn (Callable, optional): A function that simulates the 
+                dynamics of the orbit.
+            If it is None, then a default function is used. Defaults to None.
+            colour (str, optional): The colour of the orbit for plotting. 
+                Defaults to None.
+        """
+        super().__init__(a, e, i, rt_asc, arg_p, true_anomaly, body, epoch, name, orb_dyn, colour)
+        
+        self.current_r_eci = self.init_r_eci
+        self.current_v_eci = self.init_v_eci
+        self.current_time = 0
+        
+        self.propagation_length = propagation_length
+        self.propagation_step = propagation_step
+        
+        # Dictionary of sensor and time of most recent sample
+        self.sensors: dict[list[sensor.SatelliteSensor, float]] = dict()
+        # self.algorithms: 
+        
+        return
+    
+    def attach_sensor(self, sensor: sensor.SatelliteSensor) -> None:
+        sensor_info = [sensor, self.current_time]
+        self.sensors[sensor.name] = sensor_info
+        return
+    
+    def add_algorithm(self) -> None:
+        pass
+    
+    def get_sensor(self, name: str) -> sensor.SatelliteSensor:
+        return self.sensors[name][0]
+    
+    def propagate(
+        self
+    ) -> np.ndarray:
+        """Propagates the orbit of a satellite.
+
+        Returns:
+            np.ndarray: The position of the satellite in ECI coordinates.
+        """
+        y0 = np.concatenate((self.current_r_eci, self.current_v_eci)).flatten()
+        t_span = [0, self.propagation_length]
+        
+        max_step = min(
+            (sensor.sampling_period() for sensor, _ in self.sensors),
+            default=self.propagation_step
+        )
+        
+        solution = integrate.solve_ivp(
+            self.orbit_dynamics,
+            t_span,
+            y0,
+            max_step=max_step,
+            args=(self,)
+        )
+        
+        r = solution.y[0:3]
+        v = solution.y[3:6]       
+        t = solution.t + self.current_time
+        
+        self.current_r_eci = r[:, -1].flatten()
+        self.current_v_eci = v[:, -1].flatten()
+        self.current_time = t[-1]
+        
+        return r[:,:-1], v[:,:-1], t[:-1]
+    
+    def __iter__(self):
+        return self
+    
+    def __next__(self):
+        pass
