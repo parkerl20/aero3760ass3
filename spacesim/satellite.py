@@ -3,7 +3,7 @@ from spacesim import celestial_body as cb
 from spacesim import time_util as tu
 from spacesim import sensor
 
-from typing import Callable
+from typing import Any, Callable
 from scipy import integrate
 import datetime as dt
 import numpy as np
@@ -70,8 +70,39 @@ class Satellite():
         )
 
 class SatelliteAlgorithm():
-    def __init__(self) -> None:
-        pass        
+    """An algorithm that can run on a satellite.
+    
+    An algorithm can be any generic object that acts 
+    on a satellite's state and/or sensor data.
+    """
+    def __init__(
+        self,
+        algorithm: any,
+        algo_func: Callable[['SatelliteAlgorithm', 'RealTimeSatellite', dict], None]
+    ) -> None:
+        self.algorithm = algorithm
+        self.algo_func = algo_func
+        self.t_last = 0         # the last time the algorithm was run
+        return
+    
+    def __call__(
+        self,
+        satellite: 'RealTimeSatellite',
+        measurements: dict[str, sensor.SatelliteSensor]
+    ) -> None:
+        """Runs the algorithm on the satellite.
+
+        Args:
+            satellite (RealTimeSatellite): The satellite to run the algorithm on.
+            measurements (dict[str, sensor.SatelliteSensor]): A dictionary of
+                recent measurements from the satellite's sensors. If a sensor
+                has not made a measurement since the last time the algorithm
+                was run, then it will not be included in the dictionary.
+        """
+        self.algo_func(self, satellite, measurements)
+        self.t_last = satellite.current_time
+        return
+      
     
 class RealTimeSatellite(orb.Orbit):
     """An orbit that can be iterated through in real time.
