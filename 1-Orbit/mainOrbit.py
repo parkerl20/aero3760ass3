@@ -34,24 +34,18 @@ def mainOrbit():
    # Altitude for a repeating ground track orbit based on j: orbital periods and k:number of days
    orbits_per_day = [13, 14, 15, 16]
    j = choosingOrbitsPerDay(a_min, i, orbits_per_day, k=SINGLE_DAY)
+   
+   # Choose ideal eccentricity for minimum altitude that still meets coverage requirements
+   e = choosingRepeatEccentricity(a_min, i, j, SINGLE_DAY)   
 
    # Chooses 15 orbits a day as the ideal number
-   a = repeatingGroundTrackAltitude(j, SINGLE_DAY, i, e=0.0)
-   print((a - 6378130)/1000)
-
-   # Choose ideal eccentricity for minimum altitude that still meets coverage requirements
-   choosingRepeatEccentricity(a_min, i, j, SINGLE_DAY)   
-   e = 0 # Still work do be done on choosing eccentricity, so just a circular orbit for now (still works correctly just not optimised)
-   
-   # Coverage checking
-   if(a < a_min):
-      print("Coverage requirements are not met!")
+   a = repeatingGroundTrackAltitude(j, SINGLE_DAY, i, e)
 
    # Right ascension for a satellite with a required fly over point
    rt_asc = flyOverRightAscension(fly_over["lat"], fly_over["lon"], i)
 
    # Other orbital paramaters
-   e, arg_p, theta = 0.0, 0.0, 0.0  
+   arg_p, theta = 0.0, 0.0  
    
    # Simulate the orbit
    simulateOrbit(a, e, i, rt_asc, arg_p, theta)
