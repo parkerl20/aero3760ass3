@@ -113,7 +113,10 @@ class SystemPlotter():
         propagation_time: float,
         gif_name: str,
         *,
-        fps: int = 30
+        fps: int = 30,
+        fade_out: bool = False,
+        fade_out_length: int = 30,
+        animation_step: int = 1
     ) -> None:
         """Provides an animation of the orbital system in 3D.
         
@@ -124,7 +127,9 @@ class SystemPlotter():
             gif_name (str): The name of the gif to save.
         """
         plotter = pv.Plotter(notebook=False, off_screen=True)
+        plotter.background_color = 'black'
         cubemap = pv_ex.download_cubemap_space_16k()
+        
         earth = pv_ex.planets.load_earth(radius=const.R_EARTH)
         earth_texture = pv_ex.load_globe_texture()
         
@@ -135,7 +140,7 @@ class SystemPlotter():
         plotter.camera.zoom(1.5)
         original_azimuth = plotter.camera.azimuth - 45
         plotter.camera.azimuth = original_azimuth
-        
+        plotter.camera.elevation = -28
         
         # Create gif
         plotter.open_gif(
@@ -147,26 +152,37 @@ class SystemPlotter():
         points = [[] for _ in range(len(self.system.orbits))]
         current_datetime = self.system.orbits[0].epoch
         
+        opacity_values = np.linspace(0.2, 1.0, fade_out_length)
+        
         while running:   
             plotter.clear()
-            plotter.add_actor(cubemap.to_skybox())  
+            # plotter.add_actor(cubemap.to_skybox())  
                   
             # Plot orbits
             t_current = -1
             for i, orbit in enumerate(self.system.orbits):
-                r, _, t = next(orbit)
-                t_current = t
-                points[i].append(r)
+                for _ in range(animation_step):
+                    r, _, t = next(orbit)
+                    t_current = t
+                    points[i].append(r)
+                    
+                    if fade_out and len(points[i]) > fade_out_length:
+                        points[i].pop(0)
                 
                 r_pos = np.array(points[i])
-                trajectory = pv.Spline(r_pos)
+                trajectory = pv.lines_from_points(r_pos)
+                trajectory["opacity"] = opacity_values[-len(r_pos):]
                 
                 plotter.add_mesh(
                     trajectory,
-                    color=orbit.colour,
+                    cmap=[orbit.colour],
+                    scalars=np.arange(len(r_pos)),
+                    opacity="opacity",
                     line_width=3,
-                    label=orbit.name
+                    label=orbit.name,
+                    show_scalar_bar=False
                 )
+
             
             if t_current > propagation_time:
                 running = False

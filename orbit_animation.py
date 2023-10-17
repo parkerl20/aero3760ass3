@@ -17,7 +17,9 @@ def main() -> None:
     theta = 0
     epoch = dt.datetime(2023, 1, 1)
     
-    propagation_time = 3 * 60 * 60
+    propagation_time = 6 * 60 * 60
+    propagation_length = 40
+    propagation_step = propagation_length / 2
     
     realtime_sat_1 = sat.RealTimeSatellite(
         a,
@@ -30,8 +32,8 @@ def main() -> None:
         epoch,
         name="Real Time",
         colour="red",
-        propagation_length=30,
-        propagation_step=30
+        propagation_length=propagation_length,
+        propagation_step=propagation_step
     )
     
     realtime_sat_2 = sat.RealTimeSatellite(
@@ -45,8 +47,8 @@ def main() -> None:
         epoch,
         name="Real Time",
         colour="lime",
-        propagation_length=30,
-        propagation_step=30
+        propagation_length=propagation_length,
+        propagation_step=propagation_step
     )
     
     realtime_sat_3 = sat.RealTimeSatellite(
@@ -60,8 +62,8 @@ def main() -> None:
         epoch,
         name="Real Time",
         colour="yellow",
-        propagation_length=30,
-        propagation_step=30
+        propagation_length=propagation_length,
+        propagation_step=propagation_step
     )
     
     realtime_sat_4 = sat.RealTimeSatellite(
@@ -75,8 +77,8 @@ def main() -> None:
         epoch,
         name="Real Time",
         colour="blue",
-        propagation_length=30,
-        propagation_step=30
+        propagation_length=propagation_length,
+        propagation_step=propagation_step
     )
     
     earth_mesh = pv_ex.planets.load_earth(radius=const.R_EARTH)
@@ -94,9 +96,11 @@ def main() -> None:
     
     os_plotter = osplt.SystemPlotter(earth_orbital_system)
     plotter = os_plotter.animate3d(
-        realtime_sat_1.period * 2,
-        "orbit_animation.gif",
-        fps=30
+        propagation_time,
+        "orbit_animation_black.gif",
+        fps=50,
+        fade_out=True,
+        animation_step=3
     )
     
     return
