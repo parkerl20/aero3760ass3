@@ -94,7 +94,7 @@ def main() -> None:
     
     os_plotter = osplt.SystemPlotter(earth_orbital_system)
     plotter = os_plotter.animate3d(
-        realtime_sat_1.period / 4,
+        realtime_sat_1.period * 2,
         "orbit_animation.gif",
         fps=30
     )
