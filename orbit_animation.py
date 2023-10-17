@@ -17,7 +17,7 @@ def main() -> None:
     theta = 0
     epoch = dt.datetime(2023, 1, 1)
     
-    propagation_time = 6 * 60 * 60
+    propagation_time = 24 * 60 * 60
     propagation_length = 40
     propagation_step = propagation_length / 2
     

@@ -138,9 +138,9 @@ class SystemPlotter():
         # Adjust camera view
         plotter.camera_position = "yz"
         plotter.camera.zoom(1.5)
-        original_azimuth = plotter.camera.azimuth - 45
+        original_azimuth = plotter.camera.azimuth - 40
         plotter.camera.azimuth = original_azimuth
-        plotter.camera.elevation = -28
+        plotter.camera.elevation = -23
         
         # Create gif
         plotter.open_gif(
@@ -262,3 +262,16 @@ class SystemPlotter():
         track_fig.tight_layout()
         
         return track_fig, track_ax
+    
+    def animate_groundtrack(
+        propagation_time: float,
+        gif_name: str,
+        *,
+        t_start: float = 0,
+        map_img: str = None,
+        fps: int = 30,
+        fade_out: bool = False,
+        fade_out_length: int = 30,
+        animation_step: int = 1
+    ) -> None:
+        pass
