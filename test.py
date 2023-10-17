@@ -85,6 +85,7 @@ def main() -> None:
     )
     
     ekf_algorithm = sat.SatelliteAlgorithm(
+        "Orbit Determination EKF",
         ekf,
         ekf_simulator
     )

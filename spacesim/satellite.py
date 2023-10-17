@@ -84,6 +84,7 @@ class SatelliteAlgorithm():
     """
     def __init__(
         self,
+        name: str,
         algorithm: any,
         algo_func: Callable[
             [
@@ -95,6 +96,7 @@ class SatelliteAlgorithm():
             None
         ]
     ) -> None:
+        self.name = name
         self.algorithm = algorithm
         self.algo_func = algo_func
         self.t_last = 0         # the last time the algorithm was run
@@ -176,8 +178,8 @@ class RealTimeSatellite(orb.Orbit):
         self.propagation_step = propagation_step
         
         # Dictionary of sensor and the last time they made a measurement
-        self.sensors: dict[list[sensor.SatelliteSensor, float]] = dict()
-        self.algorithms: list[SatelliteAlgorithm] = []
+        self.sensors: dict[str, list[sensor.SatelliteSensor, float]] = dict()
+        self.algorithms: dict[str, SatelliteAlgorithm] = dict()
         
         self._start_flag = True
         
@@ -190,7 +192,7 @@ class RealTimeSatellite(orb.Orbit):
         return
     
     def add_algorithm(self, algorithm: SatelliteAlgorithm) -> None:
-        self.algorithms.append(algorithm)
+        self.algorithms[algorithm.name] = algorithm
         return
     
     def get_sensor(self, name: str) -> sensor.SatelliteSensor:
@@ -253,7 +255,7 @@ class RealTimeSatellite(orb.Orbit):
                         sensor_measurements[sensor.name] = sensor
                 
             # Run algorithms
-            for algorithm in self.algorithms:
+            for algorithm in self.algorithms.values():
                 algorithm(
                     time,
                     self,
