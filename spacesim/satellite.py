@@ -85,7 +85,15 @@ class SatelliteAlgorithm():
     def __init__(
         self,
         algorithm: any,
-        algo_func: Callable[['SatelliteAlgorithm', 'RealTimeSatellite', dict], None]
+        algo_func: Callable[
+            [
+                float,
+                'SatelliteAlgorithm',
+                'RealTimeSatellite',
+                dict
+            ], 
+            None
+        ]
     ) -> None:
         self.algorithm = algorithm
         self.algo_func = algo_func
@@ -108,7 +116,7 @@ class SatelliteAlgorithm():
                 has not made a measurement since the last time the algorithm
                 was run, then it will not be included in the dictionary.
         """
-        self.algo_func(self, satellite, measurements)
+        self.algo_func(t, self, satellite, measurements)
         self.t_last = t
         return
       
@@ -200,7 +208,7 @@ class RealTimeSatellite(orb.Orbit):
         t_span = [0, self.propagation_length]
         
         # Calculate evaluation points      
-        t_steps = np.arange(0, self.propagation_length, self.propagation_step)
+        t_steps = np.arange(0, self.propagation_length + self.propagation_step, self.propagation_step)
         for sensor, t_measure in self.sensors.values():
             t_diff = self.current_time - t_measure
             init_sample = max(sensor.sampling_period() - t_diff, 0)
@@ -240,18 +248,23 @@ class RealTimeSatellite(orb.Orbit):
                 # Make measurement
                 if t_diff >= sensor.sampling_period():
                     if sensor.make_measurement(self, position, velocity):
+                        # print(f"IMU measurement at:\t{time}")
                         self.sensors[sensor.name][1] = time
                         sensor_measurements[sensor.name] = sensor
                 
             # Run algorithms
             for algorithm in self.algorithms:
-                algorithm(time, self, sensor_measurements)
+                algorithm(
+                    time,
+                    self,
+                    sensor_measurements
+                )
                     
         self.current_r_eci = r[:, -1].flatten()
         self.current_v_eci = v[:, -1].flatten()
         self.current_time = t[-1]
         
-        return r[:,-2], v[:,-2], t[-2]
+        return r[:,-1], v[:,-1], t[-1]
     
     def __iter__(self):
         return self

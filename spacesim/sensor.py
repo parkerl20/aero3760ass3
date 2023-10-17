@@ -1,5 +1,5 @@
 from spacesim import satellite as sat
-from typing import Any, Callable
+from typing import Callable
 import numpy as np
 
 
@@ -39,7 +39,7 @@ class SatelliteSensor():
 
     def make_measurement(
         self,
-        satellite: sat.RealTimeSatellite,
+        satellite: "sat.RealTimeSatellite",
         r: np.ndarray,
         v: np.ndarray
     ) -> bool:        
