@@ -12,6 +12,7 @@ class SatelliteSensor():
     def __init__(
         self,
         name: str,
+        noise_covariance: np.ndarray,
         simulator: Callable[
             ['SatelliteSensor', 'sat.RealTimeSatellite', np.ndarray, np.ndarray],
             None
@@ -34,6 +35,7 @@ class SatelliteSensor():
         self.simulator = simulator
         self.mesurement: any = None
         self.frequency = frequency
+        self.noise_covariance = noise_covariance
         
         return
 
