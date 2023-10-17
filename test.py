@@ -74,6 +74,7 @@ def main() -> None:
     
     imu_sensor = sensor.SatelliteSensor(
         "imu",
+        np.eye(3),
         imu_simulator,
         frequency=0.5
     )
