@@ -198,7 +198,7 @@ class RealTimeSatellite(orb.Orbit):
     def get_sensor(self, name: str) -> sensor.SatelliteSensor:
         return self.sensors[name][0]
     
-    def propagate(
+    def inc_propagate(
         self
     ) -> np.ndarray:
         """Propagates the orbit of a satellite.
@@ -280,4 +280,4 @@ class RealTimeSatellite(orb.Orbit):
                 self.current_time
             )
         
-        return self.propagate()
+        return self.inc_propagate()

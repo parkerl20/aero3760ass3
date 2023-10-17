@@ -2,13 +2,17 @@ from spacesim import orbital_system as os
 from spacesim import celestial_body as cb
 from spacesim import orbit as orb
 from spacesim import orbital_transforms as ot
+from spacesim import constants as const
+from spacesim import time_util as tu
 
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 from matplotlib import patches
-import numpy as np
 import matplotlib.pyplot as plt
+from pyvista import examples as pv_ex
+import datetime as dt
 import pyvista as pv
+import numpy as np
 import warnings
 
 
@@ -103,6 +107,83 @@ class SystemPlotter():
             system_pl.add_mesh(trajectory, color=orbit.colour, line_width=2, label=orbit.name)
         
         return system_pl
+    
+    def animate3d(
+        self,
+        propagation_time: float,
+        gif_name: str,
+        *,
+        fps: int = 30
+    ) -> None:
+        """Provides an animation of the orbital system in 3D.
+        
+        Hard coded for earth as the primary body.
+
+        Args:
+            t (float): The propagation time from each orbits epoch to plot.
+            gif_name (str): The name of the gif to save.
+        """
+        plotter = pv.Plotter(notebook=False, off_screen=True)
+        cubemap = pv_ex.download_cubemap_space_16k()
+        earth = pv_ex.planets.load_earth(radius=const.R_EARTH)
+        earth_texture = pv_ex.load_globe_texture()
+        
+        plotter.add_mesh(earth, texture=earth_texture, smooth_shading=True)
+        
+        # Adjust camera view
+        plotter.camera_position = "yz"
+        plotter.camera.zoom(1.5)
+        original_azimuth = plotter.camera.azimuth - 45
+        plotter.camera.azimuth = original_azimuth
+        
+        
+        # Create gif
+        plotter.open_gif(
+            gif_name,
+            framerate=fps
+        )
+        
+        running = True
+        points = [[] for _ in range(len(self.system.orbits))]
+        current_datetime = self.system.orbits[0].epoch
+        
+        while running:   
+            plotter.clear()
+            plotter.add_actor(cubemap.to_skybox())  
+                  
+            # Plot orbits
+            t_current = -1
+            for i, orbit in enumerate(self.system.orbits):
+                r, _, t = next(orbit)
+                t_current = t
+                points[i].append(r)
+                
+                r_pos = np.array(points[i])
+                trajectory = pv.Spline(r_pos)
+                
+                plotter.add_mesh(
+                    trajectory,
+                    color=orbit.colour,
+                    line_width=3,
+                    label=orbit.name
+                )
+            
+            if t_current > propagation_time:
+                running = False
+                break
+            
+            # Rotate earth
+            current_datetime = self.system.orbits[0].epoch + dt.timedelta(seconds=int(t_current))
+            ERA = np.degrees(tu.gmst(current_datetime) * const.ROT_V_EARTH)
+            print(f"t: {t_current}\tERA: {ERA:.2f}")
+            
+            plotter.add_mesh(earth.rotate_z(ERA), texture=earth_texture, smooth_shading=True)
+            plotter.camera.azimuth = original_azimuth + ERA
+            
+            plotter.write_frame()
+        
+        plotter.close()
+        return
     
     def groundtrack(
         self,
