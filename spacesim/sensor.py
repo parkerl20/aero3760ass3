@@ -16,6 +16,7 @@ class SatelliteSensor():
             ['SatelliteSensor', 'sat.RealTimeSatellite', np.ndarray, np.ndarray],
             None
         ],
+        *,
         frequency: float = None
     ) -> None:
         """A sensor that works on a satellite
