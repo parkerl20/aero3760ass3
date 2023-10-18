@@ -37,23 +37,39 @@ def simulateOrbit(a, e, i, rt_asc, arg_p, theta) -> None:
     epoch = datetime(2023, 1, 1)
     
     # Create orbit
-    orbit1 = orb.Orbit(a, e, i, rt_asc, arg_p, theta, earth, epoch, "1st Satellite", colour="red")
-    orbit2 = orb.Orbit(a, e, i, rt_asc+90.0, arg_p, theta, earth, epoch, "2nd Satellite", colour="blue")
-    orbit3 = orb.Orbit(a, e, i, rt_asc+180.0, arg_p, theta, earth, epoch, "3rd Satellite", colour="green")
-    orbit4 = orb.Orbit(a, e, i, rt_asc+270.0, arg_p, theta, earth, epoch, "4th Satellite", colour="yellow")
+    orbits = [
+        orb.Orbit(a, e, i, rt_asc, arg_p, theta, earth, epoch, "1st Satellite", colour="red"),
+        orb.Orbit(a, e, i, rt_asc+90.0, arg_p, theta, earth, epoch, "2nd Satellite", colour="blue"),
+        orb.Orbit(a, e, i, rt_asc+180.0, arg_p, theta, earth, epoch, "3rd Satellite", colour="green"),
+        orb.Orbit(a, e, i, rt_asc+270.0, arg_p, theta, earth, epoch, "4th Satellite", colour="yellow")
+    ]
     
     # Params
-    propagation_time = 60 * 60 * 60
+    propagation_time = 60 * 60 * 24
 
     # Results
-    # result_r1, result_v1, result_t1 = orbit1.propagate(propagation_time)
+    results = []
+    for orbit in orbits:
+        # Propopgate orbit
+        r, v, t = orbit.propagate(propagation_time)
+
+        # Save to a dictionary
+        result = {
+            "name": orbit.name,
+            "r": r,
+            "v": v,
+            "t": t
+        }
+
+        # Final results to be sent to other sections
+        results.append(result)
 
     # Adding the orbit to a system
     earth_orbital_system = orbsys.OrbitalSystem(earth)
-    earth_orbital_system.add_orbit(orbit1)
-    earth_orbital_system.add_orbit(orbit2)
-    earth_orbital_system.add_orbit(orbit3)
-    earth_orbital_system.add_orbit(orbit4)
+
+    # Add orbits to the system for plotting
+    for orbit in orbits:
+        earth_orbital_system.add_orbit(orbit)
     
     # System plotter
     plotter = osplt.SystemPlotter(earth_orbital_system)
@@ -76,4 +92,4 @@ def simulateOrbit(a, e, i, rt_asc, arg_p, theta) -> None:
     
     plt.show()
 
-    return 0 #result_r, result_v, result_t
+    return results

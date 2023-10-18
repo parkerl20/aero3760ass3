@@ -48,9 +48,10 @@ def mainOrbit():
    arg_p, theta = 0.0, 0.0  
    
    # Simulate the orbit
-   simulateOrbit(a, e, i, rt_asc, arg_p, theta)
+   results = simulateOrbit(a, e, i, rt_asc, arg_p, theta)
+   print(len(results))
 
-   return 0
+   return results
 
 
 if __name__ == "__main__":
