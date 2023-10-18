@@ -65,7 +65,7 @@ def main() -> None:
     earth_orbital_system = orbsys.OrbitalSystem(earth)
     
     # Params
-    propagation_time = 60 * 60 * 24
+    propagation_time = 60 * 60 * 12
     
     #---------------- Create single satellite
     # tle_file = "./rsc/TLE/navstar_43.txt"
@@ -82,7 +82,7 @@ def main() -> None:
     # earth_orbital_system.add_orbit(satellite.orbit)    
     
     
-    # # ---------------- Ground station demo
+    # ---------------- Ground station demo
     # sydney_location = (-33.8688, 151.2093, 0)
     # sydney = gs.OrbitObservatory("Sydney", sydney_location)
     
@@ -105,6 +105,7 @@ def main() -> None:
     ]
     
     satellites: list[sat.Satellite] = []
+    colours = ["red", "green", "orange", "purple"]
     
     for tle in tle_files:
         with open(tle, "r") as f:
@@ -113,7 +114,7 @@ def main() -> None:
             tle_line_2 = f.readline().strip()
             
             satellite = sat.Satellite(name, tle_line_1, tle_line_2, earth)
-            satellites.append(satellite)
+            satellite.orbit.colour = colours.pop()
             
             earth_orbital_system.add_orbit(satellite.orbit)
     
@@ -128,16 +129,16 @@ def main() -> None:
     
     plt.show()
     
-    # earth_pl = system_plotter.plot3d(
-    #     propagation_time
-    # )
+    earth_pl = system_plotter.plot3d(
+        propagation_time
+    )
     
-    # # Add space background
-    # cubemap = pv_ex.download_cubemap_space_16k()
-    # earth_pl.add_actor(cubemap.to_skybox())
+    # Add space background
+    cubemap = pv_ex.download_cubemap_space_16k()
+    earth_pl.add_actor(cubemap.to_skybox())
     
     
-    # earth_pl.show()
+    earth_pl.show()
     
 
     return

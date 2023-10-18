@@ -8,9 +8,7 @@ def main():
     
     '''
     
-    staticEstimation = calculateStaticAttitude()
-    dynamicEstimation = calculateDynamicAttitude(staticEstimation)
-    estimtedAttitude = runSynthesisFunction(staticEstimation, dynamicEstimation)
+    estimtedAttitude = calculateStaticAttitude()
     
     return estimatedAttitude
     

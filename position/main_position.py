@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def transition_matrix_func(r: np.ndarray, dt: float) -> np.ndarray:    
+def transition_matrix_func_spherical(r: np.ndarray, dt: float) -> np.ndarray:    
     mu = const.MU_EARTH
     r_i, r_j, r_k = r.ravel()
     r_mag = np.linalg.norm(r)
@@ -62,13 +62,68 @@ def transition_matrix_func(r: np.ndarray, dt: float) -> np.ndarray:
     trans_mtx = np.eye(6) + (F * dt) + (F @ F * (dt**2 / 2))
     return trans_mtx
 
+# State matrix for Earth's Oblateness
+def transition_matrix_func_nonspherical(r: np.ndarray, dt: float) -> np.ndarray:
+    mu = const.MU_EARTH
+    R = const.R_EARTH
+    r_i, r_j, r_k = r.ravel()
+    r_mag = np.linalg.norm(r)
+    J2 = const.J2_EARTH
+
+    acc_const = 3*mu*J2*R**2/(2*r_mag**4)
+
+    # print(f"r: {r.ravel()}")
+    
+    # intermediate matrices
+    # [
+    #     [A, B],
+    #     [C, D]
+    # ]
+
+    A = np.zeros((3, 3))
+    B = np.eye(3)
+    D = np.zeros((3, 3))
+
+    c_00 = acc_const/r_mag - 3*acc_const*r_k**2/r_mag**3
+    c_01 = 0
+    c_02 = -6*acc_const*r_k*r_i/r_mag**3
+
+    c_10 = 0
+    c_11 = acc_const/r_mag - 3*acc_const*r_k**2/r_mag**3
+    c_12 = -6*acc_const*r_k*r_j/r_mag**3
+
+    c_20 = 0
+    c_21 = 0
+    c_22 = acc_const/r_mag - 9*acc_const*r_k**3/r_mag**3
+
+    C = np.array([
+        [c_00, c_01, c_02],
+        [c_10, c_11, c_12],
+        [c_20, c_21, c_22]
+    ])
+
+
+    F0_inter = np.concatenate((A, B), axis=1)
+    F1_inter = np.concatenate((C, D), axis=1)
+    
+    F = np.concatenate((F0_inter, F1_inter), axis=0)
+    
+    trans_mtx = np.eye(6) + (F * dt) + (F @ F * (dt**2 / 2))
+    return trans_mtx
+
+# State matrix for Earth's Atmospheric Drag
+
+# State matrix for Solar Radiation Pressure
+
+# State matrix for Moon's gravitational pull
+
 def main() -> None:
     # ----------- Parameters
     tle_file = 'rsc/TLE/navstar_43.txt'
     satellite = None
-    seed = 35
-    propagation_time = 60
-    propagation_step = 0.02
+    seed = 22
+    propagation_time = 20
+    propagation_step = 0.01
     
     # ----------- Setup
     np.random.seed(seed)

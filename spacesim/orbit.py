@@ -37,7 +37,8 @@ class Orbit():
         body: cb.CelestialBody,
         epoch: dt.datetime,
         name: str = None,
-        orb_dyn: Callable[[float, np.ndarray, "Orbit"], np.ndarray] = None, colour: str = None
+        orb_dyn: Callable[[float, np.ndarray, "Orbit"], np.ndarray] = None,
+        colour: str = None
     ) -> None:
         """Initializes an orbit object.
         
@@ -418,8 +419,7 @@ class Orbit():
         self._orbit_t = t_steps
         
         return r, v, t_steps
-            
-    
+               
     @staticmethod
     def mean_to_true_anomaly(
         mean_anomaly: float,
