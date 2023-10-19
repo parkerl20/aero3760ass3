@@ -7,14 +7,14 @@ import csv
 def initialise_credentials():
     # Initialise credentials
     service_account = "spacey@spacey-401400.iam.gserviceaccount.com"
-    key_path = "5-GEE/key.json"    
+    key_path = "gee/key.json"    
     credentials = ee.ServiceAccountCredentials(service_account, key_path)
     ee.Initialize(credentials=credentials)
 
 
 def create_map(map_object, map_name):
     # Directory
-    directory = os.path.join("5-GEE", "maps")
+    directory = os.path.join("gee", "maps")
     file_extension = ".html"
     
     # Build the full file path
@@ -25,7 +25,7 @@ def create_map(map_object, map_name):
 
 def show_map(map_name):
     # Directory
-    directory = os.path.join("5-GEE", "maps")
+    directory = os.path.join("gee", "maps")
     file_extension = ".html"
     
     # Build the full file path
