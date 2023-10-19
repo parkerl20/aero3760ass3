@@ -26,9 +26,10 @@ def od_simulation(
         satellite (sat.RealTimeSatellite): The satellite to perform
             orbit determination on
     """
+    np.random.seed(105)
     # ---------------- Mount sensors to satellite
     # Simulate HG1700 IMU
-    imu_noise = 0.065 * np.ones(3,)
+    imu_noise = 0.065 * np.ones(3,) * 0
     imu = sensor.SatelliteSensor(
         "imu",
         imu_noise,
@@ -55,9 +56,9 @@ def od_simulation(
             satellite.init_r_eci.flatten(),
             satellite.init_v_eci.flatten()
         )
-    )
+    ).reshape(6, 1)
     
-    process_noise = 1 * np.eye(6)
+    process_noise = 10 * np.eye(6)
     
     ekf = est.ExtendedKalmanFilter(
         EKF_transition_matrix_func,
@@ -78,12 +79,23 @@ def od_simulation(
     v_residuals = [[], [], []]
     time_steps = []
     
+    innovation_mag = []
+    
     
     for r_true, v_true, t in satellite:
         if t > propagation_time:
             break
         
-        ekf_state = satellite.algorithms["OD EKF"].algorithm.get_state()
+        od_ekf = satellite.algorithms["OD EKF"]
+        
+        dt = t - od_ekf.t_last
+        ekf_state = od_ekf.algorithm.predict_state(
+            f_args=(
+                od_ekf.algorithm.get_state()[:3],
+                dt
+            )
+        )
+        
         ekf_r = ekf_state[:3].flatten()
         ekf_v = ekf_state[3:].flatten()
         
@@ -94,6 +106,15 @@ def od_simulation(
         v_residuals[0].append(v_true[0] - ekf_v[0])
         v_residuals[1].append(v_true[1] - ekf_v[1])
         v_residuals[2].append(v_true[2] - ekf_v[2])
+        
+        # print(f"t: {t} dt: {dt}")
+        # print(f"rx: {r_true[0] - ekf_r[0]}")
+        
+        innovation_mag.append(
+            np.linalg.norm(
+                r_true.flatten() - ekf_r.flatten()
+            )
+        )
         
         time_steps.append(t)
     
@@ -125,6 +146,18 @@ def od_simulation(
     v_ax.grid()
     
     v_fig.tight_layout()
+    
+    # Plot the innovation
+    i_fig, i_ax = plt.subplots()
+
+    i_ax.plot(time_steps, innovation_mag)
+    
+    i_ax.set_title("Innovation Magnitude")
+    i_ax.set_xlabel("Time (s)")
+    i_ax.set_ylabel("Innovation (m)")
+    i_ax.grid()
+    
+    i_fig.tight_layout()
     
     plt.show()   
 
@@ -261,25 +294,29 @@ def EKF_algo_function(
     imu = sensors.get("imu", None)
     gnss_reciever = sensors.get("gnss_reciever", None)
     
+    dt = time - ekf.t_last
+    
     # Velocity estimate from previous IMU measurement
     if imu is not None:
         if hasattr(EKF_algo_function, "last_imu"):
+            last_r = ekf.algorithm.get_state()[:3].flatten()
             last_v = ekf.algorithm.get_state()[3:].flatten()
             last_imu = EKF_algo_function.last_imu
-            dt = time - ekf.t_last
             
             predicted_v = last_v + (last_imu * dt)
+            predicted_r = last_r + (last_v * dt) + (last_imu * (dt**2 / 2))
+
+            measured_state = np.concatenate((predicted_r, predicted_v)).reshape(6, 1)
+            imu_H = np.eye(6)
             
-            imu_H = np.array([
-                [0, 0, 0, 1, 0, 0],
-                [0, 0, 0, 0, 1, 0],
-                [0, 0, 0, 0, 0, 1]
-            ])
+            imu_pos_noise = (0.065 * dt**2) * np.ones(3,)
+            imu_vel_noise = (0.65 * dt) * np.ones(3,)
+            imu_noise = np.concatenate((imu_pos_noise, imu_vel_noise))
             
             ekf.algorithm.update(
-                predicted_v.reshape(3, 1),
+                measured_state,
                 imu_H,
-                np.diag(imu.noise_std**2),
+                np.diag(imu_noise**2),
                 f_args=(ekf.algorithm.get_state()[:3], dt)
             )
         
@@ -289,10 +326,13 @@ def EKF_algo_function(
         measured_state = gnss_reciever.get_measurement().reshape(6, 1)
         gnss_H = np.eye(6)
         
+        gnss_noise = 0 * np.diag(gnss_reciever.noise_std**2)
+        
         ekf.algorithm.update(
             measured_state,
             gnss_H,
-            np.diag(gnss_reciever.noise_std**2)
+            gnss_noise,
+            f_args=(ekf.algorithm.get_state()[:3], dt)
         )
     
     return

@@ -36,7 +36,7 @@ def main_position(
         epoch (dt.datetime): The epoch of the second position vector
     """
     # Parameters
-    propagation_time = 100
+    propagation_time = 1000
     propagation_length = 10         # Prop time per iteration on sat
     max_propagation_step = 1        # Max step size within iteraction interval
     
