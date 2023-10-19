@@ -269,6 +269,8 @@ class RealTimeSatellite(orb.Orbit):
         return r[:,-1], v[:,-1], t[-1]
     
     def reset(self) -> None:
+        """Resets the satellite to its initial state.
+        """
         self.current_r_eci = self.init_r_eci
         self.current_v_eci = self.init_v_eci
         self.current_time = 0

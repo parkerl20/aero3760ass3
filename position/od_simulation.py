@@ -14,11 +14,11 @@ from spacesim import constants as const
 from spacesim import estimation as est
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 def od_simulation(
+    propagation_time: float,
     satellite: sat.RealTimeSatellite,
-    r_init: np.ndarray,
-    v_init: np.ndarray,
 ) -> None:
     """Performs orbit determination simulation for a satellite
 
@@ -33,7 +33,7 @@ def od_simulation(
         "imu",
         imu_noise,
         imu_simulator,
-        frequency=100  
+        frequency=100
     )
     
     # Simulates Rakon GNSS reciever DB
@@ -51,7 +51,10 @@ def od_simulation(
     
     # ------------------ Add Extended Kalman Filter algorithm
     initial_state = np.concatenate(
-        (r_init.flatten(), v_init.flatten())
+        (
+            satellite.init_r_eci.flatten(),
+            satellite.init_v_eci.flatten()
+        )
     )
     
     process_noise = 1 * np.eye(6)
@@ -63,12 +66,67 @@ def od_simulation(
     )
     
     ekf_od_algorithm = sat.SatelliteAlgorithm(
-        "Orbit Determination EKF",
+        "OD EKF",
         ekf,
         EKF_algo_function
     )
     
     satellite.add_algorithm(ekf_od_algorithm)
+    
+    # Simulate the satellite
+    r_residuals = [[], [], []]
+    v_residuals = [[], [], []]
+    time_steps = []
+    
+    
+    for r_true, v_true, t in satellite:
+        if t > propagation_time:
+            break
+        
+        ekf_state = satellite.algorithms["OD EKF"].algorithm.get_state()
+        ekf_r = ekf_state[:3].flatten()
+        ekf_v = ekf_state[3:].flatten()
+        
+        r_residuals[0].append(r_true[0] - ekf_r[0])
+        r_residuals[1].append(r_true[1] - ekf_r[1])
+        r_residuals[2].append(r_true[2] - ekf_r[2])
+        
+        v_residuals[0].append(v_true[0] - ekf_v[0])
+        v_residuals[1].append(v_true[1] - ekf_v[1])
+        v_residuals[2].append(v_true[2] - ekf_v[2])
+        
+        time_steps.append(t)
+    
+    # Plot the residuals
+    r_fig, r_ax = plt.subplots()
+    
+    r_ax.plot(time_steps, r_residuals[0], label="x")
+    r_ax.plot(time_steps, r_residuals[1], label="y")
+    r_ax.plot(time_steps, r_residuals[2], label="z")
+    
+    r_ax.set_title("Position Residuals")
+    r_ax.set_xlabel("Time (s)")
+    r_ax.set_ylabel("Residual (m)")
+    r_ax.legend()
+    r_ax.grid()
+    
+    r_fig.tight_layout()
+    
+    v_fig, v_ax = plt.subplots()
+    
+    v_ax.plot(time_steps, v_residuals[0], label="x")
+    v_ax.plot(time_steps, v_residuals[1], label="y")
+    v_ax.plot(time_steps, v_residuals[2], label="z")
+    
+    v_ax.set_title("Velocity Residuals")
+    v_ax.set_xlabel("Time (s)")
+    v_ax.set_ylabel("Residual (m/s)")
+    v_ax.legend()
+    v_ax.grid()
+    
+    v_fig.tight_layout()
+    
+    plt.show()   
 
     return
 

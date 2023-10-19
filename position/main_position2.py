@@ -35,23 +35,28 @@ def main_position(
             were recorded.
         epoch (dt.datetime): The epoch of the second position vector
     """
+    # Parameters
+    propagation_time = 100
+    propagation_length = 10         # Prop time per iteration on sat
+    max_propagation_step = 1        # Max step size within iteraction interval
+    
     # Initial orbit determination
-    obv_0 = r[:,0], t[0]
-    obv_1 = r[:,1], t[1]
-    obv_2 = r[:,2], t[2]
+    # obv_0 = r[:,0], t[0]
+    # obv_1 = r[:,1], t[1]
+    # obv_2 = r[:,2], t[2]
     
-    v_1 = od.herrick_gibbs(obv_0, obv_1, obv_2, const.MU_EARTH)
+    # v_1 = od.herrick_gibbs(obv_0, obv_1, obv_2, const.MU_EARTH)
     
-    a,e,i,RAAN, arg_p, true_anom = ot.ECI_to_elements(
-        r[:,1], v_1, const.MU_EARTH
-    ).flatten()
+    # a,e,i,RAAN, arg_p, true_anom = ot.ECI_to_elements(
+    #     r[:,1], v_1, const.MU_EARTH
+    # ).flatten()
     
     # Temporary values
     a = 6932386.765062842
     e = 0.021
     i = 33
     RAAN = 58.82
-    arp_p = 180
+    arg_p = 180
     true_anom = 0
     epoch = dt.datetime(2023, 1, 1)
     
@@ -65,12 +70,21 @@ def main_position(
         true_anom,
         cb.earth,
         epoch,
-        name="Satellite 1"
+        name="Satellite 1",
+        propagation_length=propagation_length,
+        propagation_step=max_propagation_step
     )
     
-    od_simulation(satellite)
+    od_simulation(
+        propagation_time,
+        satellite,
+    )
     
     return
 
 if __name__ == "__main__":
-    main_position()
+    main_position(
+        None,
+        None,
+        None
+    )
