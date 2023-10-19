@@ -17,7 +17,7 @@ def main() -> None:
     theta = 0
     epoch = dt.datetime(2023, 1, 1)
     
-    propagation_time = 24 * 60 * 60
+    propagation_time = 6 * 60 * 60
     propagation_length = 40
     propagation_step = propagation_length / 2
     
@@ -95,11 +95,27 @@ def main() -> None:
     earth_orbital_system.add_orbit(realtime_sat_4)
     
     os_plotter = osplt.SystemPlotter(earth_orbital_system)
+    
     plotter = os_plotter.animate3d(
         propagation_time,
         "orbit_animation_black.gif",
-        fps=50,
+        fps=10,
         fade_out=True,
+        animation_step=3
+    )
+    
+    realtime_sat_1.reset()
+    realtime_sat_2.reset()
+    realtime_sat_3.reset()
+    realtime_sat_4.reset()
+    
+    os_plotter.animate_groundtrack(
+        propagation_time,
+        "orbit_animation_groundtrack2.gif",
+        fps=10,
+        map_img="./rsc/bluemarble.jpg",
+        fade_out=True,
+        fade_out_length=40,
         animation_step=3
     )
     

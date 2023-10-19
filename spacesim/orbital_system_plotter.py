@@ -8,6 +8,7 @@ from spacesim import time_util as tu
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 from matplotlib import patches
+import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 from pyvista import examples as pv_ex
 import datetime as dt
@@ -138,9 +139,11 @@ class SystemPlotter():
         # Adjust camera view
         plotter.camera_position = "yz"
         plotter.camera.zoom(1.5)
-        original_azimuth = plotter.camera.azimuth - 40
+        original_azimuth = plotter.camera.azimuth + 140
         plotter.camera.azimuth = original_azimuth
         plotter.camera.elevation = -23
+        
+        earth_rot_offset = 180
         
         # Create gif
         plotter.open_gif(
@@ -173,17 +176,24 @@ class SystemPlotter():
                 trajectory = pv.lines_from_points(r_pos)
                 trajectory["opacity"] = opacity_values[-len(r_pos):]
                 
-                plotter.add_mesh(
-                    trajectory,
-                    cmap=[orbit.colour],
-                    scalars=np.arange(len(r_pos)),
-                    opacity="opacity",
-                    line_width=3,
-                    label=orbit.name,
-                    show_scalar_bar=False
-                )
+                if fade_out:
+                    plotter.add_mesh(
+                        trajectory,
+                        cmap=[orbit.colour],
+                        scalars=np.arange(len(r_pos)),
+                        opacity="opacity",
+                        line_width=3,
+                        label=orbit.name,
+                        show_scalar_bar=False
+                    )
+                else:
+                    plotter.add_mesh(
+                        trajectory,
+                        color=orbit.colour,
+                        line_width=3,
+                        label=orbit.name
+                    )
 
-            
             if t_current > propagation_time:
                 running = False
                 break
@@ -193,7 +203,7 @@ class SystemPlotter():
             ERA = np.degrees(tu.gmst(current_datetime) * const.ROT_V_EARTH)
             print(f"t: {t_current}\tERA: {ERA:.2f}")
             
-            plotter.add_mesh(earth.rotate_z(ERA), texture=earth_texture, smooth_shading=True)
+            plotter.add_mesh(earth.rotate_z(ERA + earth_rot_offset), texture=earth_texture, smooth_shading=True)
             plotter.camera.azimuth = original_azimuth + ERA
             
             plotter.write_frame()
@@ -264,6 +274,7 @@ class SystemPlotter():
         return track_fig, track_ax
     
     def animate_groundtrack(
+        self,
         propagation_time: float,
         gif_name: str,
         *,
@@ -274,4 +285,85 @@ class SystemPlotter():
         fade_out_length: int = 30,
         animation_step: int = 1
     ) -> None:
-        pass
+        
+        track_fig, track_ax = plt.subplots()
+        
+        writer = animation.PillowWriter(fps=fps)
+        
+        if map_img is not None:
+            img = plt.imread(map_img)
+            track_ax.imshow(img, extent=[-180, 180, -90, 90])
+        
+        x_ticks = [-180 + x for x in range(0, 380, 30)]
+        y_ticks = [-90 + x for x in range(0, 195, 30)]
+        
+        track_ax.set_xlabel("Longitude", fontname="Times New Roman", fontweight="bold", fontsize=12)
+        track_ax.set_ylabel("Latitude", fontname="Times New Roman", fontweight="bold", fontsize=12)
+        track_ax.set_xticks(x_ticks)
+        track_ax.set_yticks(y_ticks)
+        track_fig.tight_layout()
+            
+        track_ax.grid()
+        
+        # Create gif
+        running = True
+        latitudes = [[] for _ in range(len(self.system.orbits))]
+        longitudes = [[] for _ in range(len(self.system.orbits))]
+        
+        with writer.saving(track_fig, gif_name, dpi=300):
+            while running:
+                lines = []      # store lines to remove later
+                
+                t_last = -1
+                # Plot orbits
+                for i, orbit in enumerate(self.system.orbits):
+                    for _ in range(animation_step):
+                        r, _, t = next(orbit)
+                        
+                        t_last = t
+                        
+                        if t > propagation_time:
+                            running = False
+                            break
+
+                        # Convert eci to lat long
+                        r_ecef = ot.ECI_to_ECEF(r, t, orbit.epoch)
+                        lat, lng, _ = ot.ECEF_to_LLH(r_ecef).flatten()
+                        
+                        # Check for discontinuity
+                        if len(longitudes[i]) > 0 and abs(longitudes[i][-1] - lng) > 180:
+                            longitudes[i].append(np.nan)
+                            latitudes[i].append(np.nan)
+                        
+                        
+                        longitudes[i].append(lng)
+                        latitudes[i].append(lat)
+                        
+                        if fade_out and len(longitudes[i]) > fade_out_length:
+                            longitudes[i].pop(0)
+                            latitudes[i].pop(0)
+                            
+                    # possibly multiple lines created
+                    lines.append(
+                        track_ax.plot(
+                            longitudes[i],
+                            latitudes[i],
+                            label=orbit.name,
+                            color=orbit.colour,
+                            linewidth=1
+                        )[0]
+                    )
+                print(t_last)
+                
+                # track_ax.legend()                
+                # Write frame
+                writer.grab_frame()
+                
+                # Clean up frame
+                for line in lines:
+                    line.remove()
+                
+        # writer.finish()
+        plt.close(track_fig)
+        return
+                

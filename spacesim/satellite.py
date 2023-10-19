@@ -268,6 +268,16 @@ class RealTimeSatellite(orb.Orbit):
         
         return r[:,-1], v[:,-1], t[-1]
     
+    def reset(self) -> None:
+        self.current_r_eci = self.init_r_eci
+        self.current_v_eci = self.init_v_eci
+        self.current_time = 0
+        
+        for sensor in self.sensors.values():
+            sensor[1] = -1
+        
+        return
+    
     def __iter__(self):
         return self
     
