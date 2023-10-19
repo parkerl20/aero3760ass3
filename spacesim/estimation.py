@@ -148,3 +148,11 @@ class ExtendedKalmanFilter():
         """
         transition_mtx = self.transition_matrix_func(*f_args)
         return transition_mtx @ self.curr_state_est
+    
+    def get_state(self) -> np.ndarray:
+        """Returns the current state estimate.
+
+        Returns:
+            np.ndarray: The current state estimate.
+        """
+        return self.curr_state_est

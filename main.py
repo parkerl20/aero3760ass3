@@ -5,15 +5,25 @@ easily, like ECI data from orbitt getting sent to gee to plot swathe width
 """
 
 from orbit.mainOrbit import mainOrbit
+from position.main_position2 import main_position
 from gee.mainGee import mainGee
+import datetime as dt
 
 
 def main():
     # Runs the main orbit code with results being r, v, t of the 4 satellites
     results = mainOrbit()
+    
+    # ---------------- Orbit determination setup
+    # First three position vectors, used for IOD
+    r_obv = results[0]['r'][:,:3]
+    t_obv = results[0]['t'][:3]
+    epoch = dt.datetime(2023, 1, 1)
+
+    main_position(r_obv, t_obv, epoch)
 
     # Runs the main GEE code opening a map in your browser
-    mainGee()
+    # mainGee()
 
     return 0
 

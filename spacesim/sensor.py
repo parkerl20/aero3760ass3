@@ -12,7 +12,7 @@ class SatelliteSensor():
     def __init__(
         self,
         name: str,
-        noise_covariance: np.ndarray,
+        noise_std: np.ndarray,
         simulator: Callable[
             ['SatelliteSensor', 'sat.RealTimeSatellite', np.ndarray, np.ndarray],
             None
@@ -24,6 +24,8 @@ class SatelliteSensor():
 
         Args:
             name (str): The name of the sensor.
+            noise_std (np.ndarray): The standard deviation of the noise
+                on the sensor in each axis.
             simulator (Callable[[SatelliteSensor, orb.Orbit, np.ndarray, np.ndarray], bool]): A function that
                 simulates the sensor making measurements. Returns True if the sensor
                 makes a measurement, and False if it does not. Takes the sensor, satellite,
@@ -35,7 +37,7 @@ class SatelliteSensor():
         self.simulator = simulator
         self.mesurement: any = None
         self.frequency = frequency
-        self.noise_covariance = noise_covariance
+        self.noise_std = noise_std
         
         return
 
