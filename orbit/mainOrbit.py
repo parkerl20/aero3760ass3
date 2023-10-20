@@ -1,10 +1,6 @@
 import numpy as np
-from .orbitalElementsCalc import flyOverRightAscension
-from .orbitalElementsCalc import minimumAltitude
-from .orbitalElementsCalc import choosingOrbitsPerDay
 from .simulateOrbit import simulateOrbit
-from .orbitalElementsCalc import repeatingGroundTrackAltitude
-from .orbitalElementsCalc import choosingRepeatEccentricity
+from .orbitalElementsCalc import *
 
 def mainOrbit():
    # Boundarys of NSW 
