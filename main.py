@@ -16,14 +16,14 @@ def main():
     
     # ---------------- Orbit determination setup
     # First three position vectors, used for IOD
-    r_obv = results[0]['r'][:,:3]
-    t_obv = results[0]['t'][:3]
+    r_obv = results[0]['r'][:]
+    t_obv = results[0]['t'][:]
     epoch = dt.datetime(2023, 1, 1)
 
-    main_position(r_obv, t_obv, epoch)
+    # main_position(r_obv, t_obv, epoch)
 
     # Runs the main GEE code opening a map in your browser
-    # mainGee()
+    mainGee(r_obv, t_obv, epoch)
 
     return 0
 
