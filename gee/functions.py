@@ -171,6 +171,52 @@ def S2A_NDVI(start_date: str, end_date: str):
     return Map
 
 
+def S2A_coverage(start_date: str, end_date: str):
+    # Get the geometry of New South Wales
+    nsw = ee.FeatureCollection("FAO/GAUL/2015/level1").filter(
+            ee.Filter.eq('ADM1_NAME', 'New South Wales')
+    )
+ 
+   # Sentinel-2A satellite
+    dataset = (
+        ee.ImageCollection('COPERNICUS/S2_SR')
+        .filterBounds(nsw)
+        .filterDate(start_date, end_date)
+        # Pre-filter to get less cloudy granules.
+        .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
+        .map(mask_s2_clouds)
+        .map(calculate_ndvi) # Calculates the NDVI index
+    )
+
+    # Selecting NDVI
+    mean_ndvi = dataset.mean().select('NDVI')
+
+    # Visualisation parameter
+    ndvi_vis = {
+        'min': -1,
+        'max': 1,
+        'palette': ['blue', 'white', 'green']
+    }
+
+    # Map initialisation
+    Map = geemap.Map() 
+    Map.set_center(146.9211, -31.2532, 6) # Center of nsw
+
+    # Coverage region
+    points_of_interest = [
+        [151.2093, -33.8688],  # Sydney
+        [150.8931, -34.4278],  # Wollongong
+        [151.7817, -32.9275]   # Newcastle
+    ]
+
+    # Coverage points
+    multipoint = ee.Geometry.MultiPoint(points_of_interest)
+    coverage = multipoint.buffer(2000)
+    mean_ndvi_clipped = mean_ndvi.clip(coverage)
+    Map.add_ee_layer(mean_ndvi_clipped, ndvi_vis, "NDVI")
+
+    return Map
+
 def elevation_5m():
     # Get the geometry of New South Wales
     nsw = ee.FeatureCollection("FAO/GAUL/2015/level1").filter(
