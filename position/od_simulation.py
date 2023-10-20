@@ -29,7 +29,7 @@ def od_simulation(
     np.random.seed(105)
     # ---------------- Mount sensors to satellite
     # Simulate HG1700 IMU
-    imu_noise = 0.065 * np.ones(3,) * 0
+    imu_noise = 10 * np.ones(3,)
     imu = sensor.SatelliteSensor(
         "imu",
         imu_noise,
@@ -44,10 +44,10 @@ def od_simulation(
         "gnss_reciever",
         np.concatenate((gnss_position_noise, gnss_velocity_noise)),
         gnss_reciever_simulator,
-        frequency=10
+        frequency=20
     )
     
-    satellite.attach_sensor(imu)
+    # satellite.attach_sensor(imu)
     satellite.attach_sensor(gnss_reciever)
     
     # ------------------ Add Extended Kalman Filter algorithm
@@ -58,7 +58,7 @@ def od_simulation(
         )
     ).reshape(6, 1)
     
-    process_noise = 10 * np.eye(6)
+    process_noise = 0.05 * np.eye(6)
     
     ekf = est.ExtendedKalmanFilter(
         EKF_transition_matrix_func,
@@ -119,19 +119,41 @@ def od_simulation(
         time_steps.append(t)
     
     # Plot the residuals
-    r_fig, r_ax = plt.subplots()
+    rx_fig, rx_ax = plt.subplots()
     
-    r_ax.plot(time_steps, r_residuals[0], label="x")
-    r_ax.plot(time_steps, r_residuals[1], label="y")
-    r_ax.plot(time_steps, r_residuals[2], label="z")
+    rx_ax.plot(time_steps, r_residuals[0])
+    print(f"x - mean: {np.mean(r_residuals[0])}\tstd: {np.std(r_residuals[0])}")
+    print(f"y - mean: {np.mean(r_residuals[1])}\tstd: {np.std(r_residuals[1])}")
+    print(f"z - mean: {np.mean(r_residuals[2])}\tstd: {np.std(r_residuals[2])}")
     
-    r_ax.set_title("Position Residuals")
-    r_ax.set_xlabel("Time (s)")
-    r_ax.set_ylabel("Residual (m)")
-    r_ax.legend()
-    r_ax.grid()
+    rx_ax.set_title("Residuals in x")
+    rx_ax.set_xlabel("Time (s)")
+    rx_ax.set_ylabel("Residual (m)")
+    rx_ax.grid()
     
-    r_fig.tight_layout()
+    rx_fig.tight_layout()
+    
+    ry_fig, ry_ax = plt.subplots()
+    
+    ry_ax.plot(time_steps, r_residuals[1])
+    
+    ry_ax.set_title("Residuals in y")
+    ry_ax.set_xlabel("Time (s)")
+    ry_ax.set_ylabel("Residual (m)")
+    ry_ax.grid()
+    
+    ry_fig.tight_layout()
+    
+    rz_fig, rz_ax = plt.subplots()
+    
+    rz_ax.plot(time_steps, r_residuals[2])
+    
+    rz_ax.set_title("Residuals in z")
+    rz_ax.set_xlabel("Time (s)")
+    rz_ax.set_ylabel("Residual (m)")
+    rz_ax.grid()
+    
+    rz_fig.tight_layout()
     
     v_fig, v_ax = plt.subplots()
     
@@ -139,11 +161,11 @@ def od_simulation(
     v_ax.plot(time_steps, v_residuals[1], label="y")
     v_ax.plot(time_steps, v_residuals[2], label="z")
     
-    v_ax.set_title("Velocity Residuals")
+    v_ax.set_title("Residuals in velocity")
     v_ax.set_xlabel("Time (s)")
     v_ax.set_ylabel("Residual (m/s)")
-    v_ax.legend()
     v_ax.grid()
+    v_ax.legend()
     
     v_fig.tight_layout()
     
@@ -160,7 +182,6 @@ def od_simulation(
     i_fig.tight_layout()
     
     plt.show()   
-
     return
 
 
@@ -304,19 +325,24 @@ def EKF_algo_function(
             last_imu = EKF_algo_function.last_imu
             
             predicted_v = last_v + (last_imu * dt)
-            predicted_r = last_r + (last_v * dt) + (last_imu * (dt**2 / 2))
+            # predicted_r = last_r + (last_v * dt) + (last_imu * (dt**2 / 2))
 
-            measured_state = np.concatenate((predicted_r, predicted_v)).reshape(6, 1)
-            imu_H = np.eye(6)
+            # measured_state = np.concatenate((predicted_r, predicted_v)).reshape(6, 1)
+            # imu_H = np.eye(6)
+            imu_H = np.array([
+                [0, 0, 0, 1, 0, 0],
+                [0, 0, 0, 0, 1, 0],
+                [0, 0, 0, 0, 0, 1]
+            ])
             
-            imu_pos_noise = (0.065 * dt**2) * np.ones(3,)
-            imu_vel_noise = (0.65 * dt) * np.ones(3,)
+            imu_pos_noise =  (dt**2 / 2) * imu.noise_std
+            imu_vel_noise = imu.noise_std
             imu_noise = np.concatenate((imu_pos_noise, imu_vel_noise))
             
             ekf.algorithm.update(
-                measured_state,
+                predicted_v.reshape(3,1),
                 imu_H,
-                np.diag(imu_noise**2),
+                np.diag(imu_vel_noise**2),
                 f_args=(ekf.algorithm.get_state()[:3], dt)
             )
         
@@ -326,7 +352,7 @@ def EKF_algo_function(
         measured_state = gnss_reciever.get_measurement().reshape(6, 1)
         gnss_H = np.eye(6)
         
-        gnss_noise = 0 * np.diag(gnss_reciever.noise_std**2)
+        gnss_noise = np.diag(gnss_reciever.noise_std**2) * 1
         
         ekf.algorithm.update(
             measured_state,
@@ -336,3 +362,23 @@ def EKF_algo_function(
         )
     
     return
+
+class DictLogger(): 
+    def __init__(self) -> None:
+        self.log: dict = dict()
+        
+    def add_log(self, key: str, init_value: any) -> None:
+        if key in self.log:
+            return
+        
+        self.log[key] = init_value
+        return
+    
+    def get_log(self, key: str) -> any:
+        if key not in self.log:
+            raise KeyError(f"Key {key} not in log")
+        
+        return self.log[key]
+    
+    def get_log_keys(self) -> list[str]:
+        return list(self.log.keys())

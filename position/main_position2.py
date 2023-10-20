@@ -36,9 +36,9 @@ def main_position(
         epoch (dt.datetime): The epoch of the second position vector
     """
     # Parameters
-    propagation_time = 1000
-    propagation_length = 10         # Prop time per iteration on sat
-    max_propagation_step = 1        # Max step size within iteraction interval
+    propagation_time = 50
+    propagation_length = 0.1         # Prop time per iteration on sat
+    max_propagation_step = 0.1        # Max step size within iteraction interval
     
     # Initial orbit determination
     # obv_0 = r[:,0], t[0]
