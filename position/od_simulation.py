@@ -59,7 +59,7 @@ def od_simulation(
         )
     ).reshape(6, 1)
     
-    process_noise = 0.05 * np.eye(6)
+    process_noise = 0.15 * np.eye(6)
     
     ekf = est.ExtendedKalmanFilter(
         EKF_transition_matrix_func,
@@ -186,7 +186,7 @@ def od_simulation(
     
     i_fig.tight_layout()
     
-    # plt.show()   
+    plt.show()   
     return
 
 

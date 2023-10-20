@@ -17,7 +17,7 @@ import numpy as np
 import datetime as dt
 import matplotlib.pyplot as plt
 
-from od_simulation import od_simulation
+from .od_simulation import od_simulation
 
 def main_position(
     r: np.ndarray,
@@ -36,29 +36,29 @@ def main_position(
         epoch (dt.datetime): The epoch of the second position vector
     """
     # Parameters
-    propagation_time = 50
-    propagation_length = 0.1         # Prop time per iteration on sat
-    max_propagation_step = 0.1        # Max step size within iteraction interval
+    propagation_time = 1000
+    propagation_length = 10         # Prop time per iteration on sat
+    max_propagation_step = 1        # Max step size within iteraction interval
     
     # Initial orbit determination
-    # obv_0 = r[:,0], t[0]
-    # obv_1 = r[:,1], t[1]
-    # obv_2 = r[:,2], t[2]
+    obv_0 = r[:,0], t[0]
+    obv_1 = r[:,1], t[1]
+    obv_2 = r[:,2], t[2]
     
-    # v_1 = od.herrick_gibbs(obv_0, obv_1, obv_2, const.MU_EARTH)
+    v_1 = od.herrick_gibbs(obv_0, obv_1, obv_2, const.MU_EARTH)
     
-    # a,e,i,RAAN, arg_p, true_anom = ot.ECI_to_elements(
-    #     r[:,1], v_1, const.MU_EARTH
-    # ).flatten()
+    a,e,i,RAAN, arg_p, true_anom = ot.ECI_to_elements(
+        r[:,1], v_1, const.MU_EARTH
+    ).flatten()
     
     # Temporary values
-    a = 6932386.765062842
-    e = 0.021
-    i = 33
-    RAAN = 58.82
-    arg_p = 180
-    true_anom = 0
-    epoch = dt.datetime(2023, 1, 1)
+    # a = 6932386.765062842
+    # e = 0.021
+    # i = 33
+    # RAAN = 58.82
+    # arg_p = 180
+    # true_anom = 0
+    # epoch = dt.datetime(2023, 1, 1)
     
     # Set up satellite
     satellite = sat.RealTimeSatellite(
