@@ -2,6 +2,7 @@ from spacesim import orbit as orb
 from spacesim import celestial_body as cb
 from spacesim import time_util as tu
 from spacesim import sensor
+from spacesim import util
 
 from typing import Any, Callable
 from scipy import integrate
@@ -94,12 +95,14 @@ class SatelliteAlgorithm():
                 dict
             ], 
             None
-        ]
+        ],
+        logger: util.DictLogger = None
     ) -> None:
         self.name = name
         self.algorithm = algorithm
         self.algo_func = algo_func
         self.t_last = 0         # the last time the algorithm was run
+        self.logger = logger
         return
     
     def __call__(
@@ -118,7 +121,7 @@ class SatelliteAlgorithm():
                 has not made a measurement since the last time the algorithm
                 was run, then it will not be included in the dictionary.
         """
-        self.algo_func(t, self, satellite, measurements)
+        self.algo_func(t, self, satellite, measurements, self.logger)
         self.t_last = t
         return
       
@@ -240,6 +243,9 @@ class RealTimeSatellite(orb.Orbit):
             position = r[:, i].flatten()
             velocity = v[:, i].flatten()
             time = t[i]
+            
+            self.current_r_eci = position
+            self.current_v_eci = velocity
             
             sensor_measurements = dict()
             

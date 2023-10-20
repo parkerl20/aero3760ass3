@@ -12,6 +12,7 @@ from spacesim import celestial_body as cb
 from spacesim import sensor
 from spacesim import constants as const
 from spacesim import estimation as est
+from spacesim import util
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -26,10 +27,10 @@ def od_simulation(
         satellite (sat.RealTimeSatellite): The satellite to perform
             orbit determination on
     """
-    np.random.seed(105)
+    np.random.seed(32)
     # ---------------- Mount sensors to satellite
     # Simulate HG1700 IMU
-    imu_noise = 10 * np.ones(3,)
+    imu_noise = 0.065 * np.ones(3,)
     imu = sensor.SatelliteSensor(
         "imu",
         imu_noise,
@@ -69,7 +70,8 @@ def od_simulation(
     ekf_od_algorithm = sat.SatelliteAlgorithm(
         "OD EKF",
         ekf,
-        EKF_algo_function
+        EKF_algo_function,
+        util.DictLogger()
     )
     
     satellite.add_algorithm(ekf_od_algorithm)
@@ -118,13 +120,16 @@ def od_simulation(
         
         time_steps.append(t)
     
+    r_residuals_log = np.array(satellite.algorithms["OD EKF"].logger.get_log("r_residual")).T
+    v_residuals_log = np.array(satellite.algorithms["OD EKF"].logger.get_log("v_residual")).T
+    
     # Plot the residuals
     rx_fig, rx_ax = plt.subplots()
     
     rx_ax.plot(time_steps, r_residuals[0])
-    print(f"x - mean: {np.mean(r_residuals[0])}\tstd: {np.std(r_residuals[0])}")
-    print(f"y - mean: {np.mean(r_residuals[1])}\tstd: {np.std(r_residuals[1])}")
-    print(f"z - mean: {np.mean(r_residuals[2])}\tstd: {np.std(r_residuals[2])}")
+    print(f"x - mean: {np.mean(r_residuals_log[0])}\tstd: {np.std(r_residuals_log[0])}")
+    print(f"y - mean: {np.mean(r_residuals_log[1])}\tstd: {np.std(r_residuals_log[1])}")
+    print(f"z - mean: {np.mean(r_residuals_log[2])}\tstd: {np.std(r_residuals_log[2])}")
     
     rx_ax.set_title("Residuals in x")
     rx_ax.set_xlabel("Time (s)")
@@ -181,7 +186,7 @@ def od_simulation(
     
     i_fig.tight_layout()
     
-    plt.show()   
+    # plt.show()   
     return
 
 
@@ -303,7 +308,8 @@ def EKF_algo_function(
     time: float,
     ekf: sat.SatelliteAlgorithm,
     satellite: sat.RealTimeSatellite,
-    sensors: dict[str, sensor.SatelliteSensor]
+    sensors: dict[str, sensor.SatelliteSensor],
+    logger: util.DictLogger = None
 ) -> None:
     """Simulates an Extended Kalman Filter algorithm
     on a satellite in that acts on sensor data.
@@ -325,24 +331,24 @@ def EKF_algo_function(
             last_imu = EKF_algo_function.last_imu
             
             predicted_v = last_v + (last_imu * dt)
-            # predicted_r = last_r + (last_v * dt) + (last_imu * (dt**2 / 2))
+            predicted_r = last_r + (last_v * dt) + (last_imu * (dt**2 / 2))
 
-            # measured_state = np.concatenate((predicted_r, predicted_v)).reshape(6, 1)
-            # imu_H = np.eye(6)
-            imu_H = np.array([
-                [0, 0, 0, 1, 0, 0],
-                [0, 0, 0, 0, 1, 0],
-                [0, 0, 0, 0, 0, 1]
-            ])
+            measured_state = np.concatenate((predicted_r, predicted_v)).reshape(6, 1)
+            imu_H = np.eye(6)
+            # imu_H = np.array([
+            #     [0, 0, 0, 1, 0, 0],
+            #     [0, 0, 0, 0, 1, 0],
+            #     [0, 0, 0, 0, 0, 1]
+            # ])
             
-            imu_pos_noise =  (dt**2 / 2) * imu.noise_std
+            imu_pos_noise = imu.noise_std
             imu_vel_noise = imu.noise_std
             imu_noise = np.concatenate((imu_pos_noise, imu_vel_noise))
             
             ekf.algorithm.update(
-                predicted_v.reshape(3,1),
+                measured_state,
                 imu_H,
-                np.diag(imu_vel_noise**2),
+                np.diag(imu_noise**2),
                 f_args=(ekf.algorithm.get_state()[:3], dt)
             )
         
@@ -361,24 +367,36 @@ def EKF_algo_function(
             f_args=(ekf.algorithm.get_state()[:3], dt)
         )
     
+    # Log results
+    if logger is not None:
+        log_EKF_algo(
+            logger,
+            time,
+            ekf.algorithm.get_state()[:3].flatten(),
+            ekf.algorithm.get_state()[3:].flatten(),
+            satellite.current_r_eci.flatten(),
+            satellite.current_v_eci.flatten()
+        )
+    
     return
 
-class DictLogger(): 
-    def __init__(self) -> None:
-        self.log: dict = dict()
-        
-    def add_log(self, key: str, init_value: any) -> None:
-        if key in self.log:
-            return
-        
-        self.log[key] = init_value
-        return
+def log_EKF_algo(
+    logger: util.DictLogger,
+    t: float,
+    r: np.ndarray,
+    v: np.ndarray,
+    r_true: np.ndarray,
+    v_true: np.ndarray
+) -> None:
+    """Logging function for the OD EKF algorithm
+    """
+    if len(logger.get_log_keys()) == 0:
+        logger.add_log("t", [])
+        logger.add_log("r_residual", [])
+        logger.add_log("v_residual", [])
     
-    def get_log(self, key: str) -> any:
-        if key not in self.log:
-            raise KeyError(f"Key {key} not in log")
-        
-        return self.log[key]
+    logger.get_log("t").append(t)
+    logger.get_log("r_residual").append(r - r_true)
+    logger.get_log("v_residual").append(v - v_true)
     
-    def get_log_keys(self) -> list[str]:
-        return list(self.log.keys())
+    return
