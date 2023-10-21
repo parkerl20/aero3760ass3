@@ -18,7 +18,7 @@ from pyvista import examples as pv_ex
 import numpy as np
 import matplotlib.pyplot as plt
 
-def simulateOrbit(a, e, i, rt_asc, arg_p, theta) -> None:
+def simulateOrbit(a, e, i, rt_asc, arg_p, theta, show_results) -> None:
     #---------------- Create earth object
     earth_mesh = pv_ex.planets.load_earth(radius=const.R_EARTH)
     earth_tex = pv_ex.load_globe_texture()
@@ -88,8 +88,8 @@ def simulateOrbit(a, e, i, rt_asc, arg_p, theta) -> None:
     # Add space background
     cubemap = pv_ex.download_cubemap_space_16k()
     earth_pl.add_actor(cubemap.to_skybox())
-    earth_pl.show()
-    
-    plt.show()
+    if(show_results):
+        earth_pl.show()
+        plt.show()
 
     return results

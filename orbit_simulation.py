@@ -9,6 +9,7 @@ from spacesim import util
 import numpy as np
 import matplotlib.pyplot as plt
 import datetime as dt
+import util as ut
 
 def orbit_simulation(
     propagation_time: float,
@@ -415,6 +416,8 @@ def create_od_results(
 ) -> None:
     """Creates plots for the residuals in position and velocity
     """
+    ut.startup_plotting()
+    
     # Plot the residuals
     rx_fig, rx_ax = plt.subplots()
     

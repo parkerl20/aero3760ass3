@@ -296,7 +296,7 @@ def EKF_algo_function(
     """Simulates an Extended Kalman Filter algorithm
     on a satellite in that acts on sensor data.
     
-    The Extneded Kalman Filter algorithm function for
+    The Extended Kalman Filter algorithm function for
     orbit determination recieves data from the IMU and GNSS
     reciever sensors.
     """
@@ -318,6 +318,9 @@ def EKF_algo_function(
             measured_state = np.concatenate((predicted_r, predicted_v)).reshape(6, 1)
             imu_H = np.eye(6)
             # imu_H = np.array([
+            #     [1, 0, 0, 0, 0, 0],  
+            #     [0, 1, 0, 0, 0, 0],  
+            #     [0, 0, 1, 0, 0, 0],
             #     [0, 0, 0, 1, 0, 0],
             #     [0, 0, 0, 0, 1, 0],
             #     [0, 0, 0, 0, 0, 1]
