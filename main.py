@@ -25,7 +25,6 @@ def main():
     epoch = dt.datetime(2023, 1, 1)
     simulation_time = 1000
 
-    # main_position(r_obv, t_obv, epoch)
     orbit_simulation(
         simulation_time,
         a,
