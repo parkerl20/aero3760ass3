@@ -310,9 +310,9 @@ def nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init):
 
 
 
-        C_lgcv2body = np.array([[np.cos(psi)*np.cos(theta), np.sin(psi)*np.cos(theta), -np.sin(theta)],
-                      [np.cos(psi)*np.sin(theta)*np.sin(phi) - np.sin(psi)*np.cos(phi), np.sin(psi)*np.sin(theta)*np.sin(phi) + np.cos(psi)*np.cos(phi), np.cos(theta)*np.sin(phi)],
-                    [np.cos(psi)*np.sin(theta)*np.cos(phi) + np.sin(psi)*np.sin(phi), np.sin(psi)*np.sin(theta)*np.cos(phi) - np.cos(psi)*np.sin(phi), np.cos(theta)*np.cos(phi)]])
+        # C_lgcv2body = np.array([[np.cos(psi)*np.cos(theta), np.sin(psi)*np.cos(theta), -np.sin(theta)],
+        #               [np.cos(psi)*np.sin(theta)*np.sin(phi) - np.sin(psi)*np.cos(phi), np.sin(psi)*np.sin(theta)*np.sin(phi) + np.cos(psi)*np.cos(phi), np.cos(theta)*np.sin(phi)],
+        #             [np.cos(psi)*np.sin(theta)*np.cos(phi) + np.sin(psi)*np.sin(phi), np.sin(psi)*np.sin(theta)*np.cos(phi) - np.cos(psi)*np.sin(phi), np.cos(theta)*np.cos(phi)]])
         
 
         # # change this to quaternions
@@ -320,35 +320,15 @@ def nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init):
                                 [2*(qx*qy + qw*qz), qw**2 - qx**2 + qy**2 - qz**2, 2*(qy*qz - qw*qx)],
                                 [2*(qx*qz - qw*qy), 2*(qy*qz + qw*qx), qw**2 - qx**2 - qy**2 + qz**2]]).T
 
-
-
-        q0 = np.sqrt( (np.trace(C_lgcv2body)+1) / 4 )
-        q1 = np.sqrt(C_lgcv2body[0][0]/2 *(1 - np.trace(C_lgcv2body)) / 4 )
-        q2 = np.sqrt(C_lgcv2body[1][1]/2 *(1 - np.trace(C_lgcv2body)) / 4 )
-        q3 = np.sqrt(C_lgcv2body[2][2]/2 *(1 - np.trace(C_lgcv2body)) / 4 )
-
-        qR = np.array([q0,q1,q2,q3])
-        
-        # y = C_lgcv @ ref_vectors_lgcv.T
-        I_star = np.diag(np.diag([1,-1,-1,-1]))
-
-        # have to convert vectors to quaternion??
-        # vector1 = np.pad(ref_vectors_lgcv.T[0], (1,0))
-        # print(vector1)
-        # print(qR)
-        # y = qR @ vector1 @ (qR*I_star).T
-
-        print(ref_vectors_lgcv)
+        # print(ref_vectors_lgcv)
         y = C_lgcv2body_quat @ ref_vectors_lgcv.T
 
-        print("y_quat", y)
-        print()
-        y = C_lgcv2body @ ref_vectors_lgcv.T
-        print("y", y)
+        # print("y_quat", y)
+        # print()
+        # y = C_lgcv2body @ ref_vectors_lgcv.T
+        # print("y", y)
         # these are totally different what the actual fuck
 
-
-        yo
 
 
         # print("y", y)
@@ -384,13 +364,28 @@ def nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init):
  
 
         H = []
-        for m in vector_obs:
-            # I_star = np.diag(np.diag([1,-1,-1,-1]))
-            # H_quat = C_lgcv2body_quat*I_star + 
-            H.append(-2*np.array([np.array([qz, qy, qx, qw])*m[0],
-                        np.array([qw, -qx, qy, -qz])*m[1],
-                        np.array([-qx, -qw, qz, qy])*m[2]]))
-            
+        # for each vector measurement in body frame
+        # or for each vector measurement in lgcv frame
+        for m in y.T:
+            H11 = 2*(qw * m[0] - qz * m[1] + qy * m[2])
+            H12 = 2*(qx * m[0] + qy * m[1] + qz * m[2])
+            H13 = 2*(- qy * m[0] + qx * m[1] + qw * m[2])
+            H14 = 2*(- qz * m[0] - qw * m[1] + qx * m[2])
+
+            H21 = 2*(qz*m[0] + qw*m[1] - qx*m[2])
+            H22 = 2*(qy*m[0] - qx*m[1] - qw*m[2])
+            H23 = 2*(qx*m[0] + qy*m[1] + qz*m[2])
+            H24 = 2*(qw*m[0] - qz*m[1] + qy*m[2])
+
+            H31 = 2*(-qy*m[0] + qx*m[1] + qw*m[2])
+            H32 = 2*(qz*m[0] + qw*m[1] - qx*m[2])
+            H33 = 2*(-qw*m[0] + qz*m[1] -qy*m[2])
+            H34 = 2*(qx*m[0] + qy*m[1] + qz*m[2])
+ 
+            H.append(np.array([
+                [H11, H12, H13, H14],
+                [H21, H22, H23, H24],
+                [H31, H32, H33, H34]]))
         #     f
         #     # H11 = 
 
@@ -398,30 +393,6 @@ def nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init):
         # wxyz = 1234
             # H =
 
-
-        # For EULER:
-        # H = []
-        
-        # for m in vector_obs:
-        #     H11 = 0
-        #     H12 = -np.cos(psi)*np.sin(theta)*m[0] - np.sin(psi)*np.sin(theta)*m[1] - np.cos(theta)*m[2]
-        #     H13 = -np.sin(psi)*np.cos(phi)*m[0] + np.cos(psi)*np.cos(phi)*m[1]
-
-        #     H21 = (np.cos(psi)*np.sin(theta)*np.cos(phi) + np.sin(psi)*np.sin(phi))*m[0] + (np.sin(psi)*np.sin(theta)*np.cos(phi) - np.cos(psi)*np.sin(phi))*m[1] + np.cos(theta)*np.cos(phi)*m[2]
-        #     H22 = np.cos(psi)*np.cos(theta)*np.sin(phi)*m[0] + np.sin(psi)*np.cos(theta)*np.sin(phi)*m[1] - np.sin(theta)*np.sin(phi)*m[2]
-        #     H23 = (-np.sin(psi)*np.sin(theta)*np.sin(phi) - np.cos(psi)*np.cos(phi))*m[0] + (np.cos(psi)*np.sin(theta)*np.sin(phi) - np.sin(psi)*np.cos(phi))*m[1]
-
-        #     H31 = (-np.cos(psi)*np.sin(theta)*np.sin(phi) + np.sin(psi)*np.cos(phi))*m[0] + (-np.sin(psi)*np.sin(theta)*np.sin(phi) - np.cos(psi)*np.cos(phi))*m[1] - np.cos(theta)*np.sin(phi)*m[2]
-        #     H32 = np.cos(psi)*np.cos(theta)*np.cos(phi)*m[0] + np.sin(psi)*np.cos(theta)*np.cos(phi)*m[1] - np.sin(theta)*np.cos(phi)*m[2]
-        #     H33 = (-np.sin(psi)*np.sin(theta)*np.cos(phi) + np.cos(psi)*np.sin(phi))*m[0] + (np.cos(psi)*np.sin(theta)*np.cos(phi) + np.sin(psi)*np.sin(phi))*m[1]
-
-        #     # H = np.append(H, [
-        #     # H = np.array([
-        #     H.append(np.array([
-        #         [H11, H12, H13 ],
-        #         [H21, H22, H23],
-        #         [H31, H32, H33]]))
-        
         H = np.array(H)
         # print(H.shape)
         # Reshaping to be 2 dimensional
@@ -448,18 +419,16 @@ def nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init):
 
         # ])
 
-        W[0,0] = 0.5
-        W[1,1] = 0.5
-        W[2,2] = 0.5
+        # W[0,0] = 0.9
+        # W[1,1] = 0.9
+        # W[2,2] = 0.9
         
 
 
         # print(vector_obs.shape)
 
         # W = np.eye(3)
-        
-        print(H.shape)
-        # PDOP        
+                # PDOP        
         pdop = np.sqrt(np.trace( np.linalg.inv( H.T @ H )))
 
         # NLLS calculation for change in attitude for next iterations
@@ -470,7 +439,6 @@ def nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init):
         # this will  output radians
         # print(datt)
 
-        datt_deg = np.rad2deg(datt)
         # print(datt_deg)
 
         # confused about dimension sizing
@@ -478,11 +446,14 @@ def nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init):
         
 
         if np.sum(np.abs(datt) > tol):
-            print(att_opt)
+            print(quat2euler(att_opt))
+            print("att_opt", att_opt)
             att_opt = att_opt + datt.T
-            print(datt)
+            print("datt", datt)
+
+            # print(quat2euler(datt))
             datts.append(np.abs(np.linalg.norm(datt)))
-            print(att_opt)
+            # print(att_opt)
             i +=1
             att_store = np.append(att_store,[quat2euler(att_opt)], axis = 0)
         else:
@@ -503,17 +474,17 @@ att_init = (np.array([10,32,-45]))
 # this is in lgcv??
 vector_obs = np.array([[ 0.3,  0.5,  0.3],[-0.08, -0.01,   0.5], [ 0.4, -0.9, -0.4],[ 0.4, -0.9, -0.3]])
 vector_obs = np.array([[-0.3, 0.3, -0.5], [-0.4, -0.2, -0.01], [-0.2, 0.5, 0.9], [-0.2, -0.5, 0.9]])
-vector_obs = np.array([[-0.0879, 0.5242, -0.6383],[-0.3319, 0.3281, 0.2055], [0.8465, 0.0540, 0.6485],[0.8465, 0.0540, 0.6485]])
+vector_obs = np.array([[-0.0879, 0.5242, -0.6383],[-0.3319, 0.3281, 0.2055], [0.8465, 0.0540, 0.6485]])
 
 # [[ 0.48208398  0.58341093  0.34238388]
 #  [-0.08427267 -0.0996557   0.49291668]
 #  [ 0.41381351 -0.90926659 -0.37681912]
 #  [ 0.41381351 -0.90926659 -0.37681912]]
-ref_vectors_lgcv = np.array([[0.2,0.7,-0.4],[0.1,0.3,0.4],[0.7,-0.8,0.1],[0.7,-0.8,0.1]  ])
+ref_vectors_lgcv = np.array([[0.2,0.7,-0.4],[0.1,0.3,0.4],[0.7,-0.8,0.1] ])
 # needs to be in radians
 att_opt, pdop, att_store, i, datts = nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init)
 
-print("Final attitude estimation", att_opt)
+print("Final attitude estimation", quat2euler(att_opt))
 print(att_store.shape)
 plt.figure()
 plt.plot(range(len(att_store)), att_store[:,0], label = "Yaw")
