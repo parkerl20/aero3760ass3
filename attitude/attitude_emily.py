@@ -300,28 +300,57 @@ def nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init):
         qz = att_opt[2]
         qw = att_opt[3]
 
-        # x_eul = quat2euler(att_opt)
-        # psi = x_eul[0]
-        # theta = x_eul[1]
-        # phi = x_eul[2]
+        x_eul = quat2euler(att_opt)
+        psi = np.deg2rad(x_eul[0])
+        theta = np.deg2rad(x_eul[1])
+        phi = np.deg2rad(x_eul[2])
         # psi = np.deg2rad(att_opt[0])
         # theta = np.deg2rad(att_opt[1])
         # phi = np.deg2rad(att_opt[2])
 
 
 
-        # C_lgcv2body = np.array([[np.cos(psi)*np.cos(theta), np.sin(psi)*np.cos(theta), -np.sin(theta)],
-        #               [np.cos(psi)*np.sin(theta)*np.sin(phi) - np.sin(psi)*np.cos(phi), np.sin(psi)*np.sin(theta)*np.sin(phi) + np.cos(psi)*np.cos(phi), np.cos(theta)*np.sin(phi)],
-        #             [np.cos(psi)*np.sin(theta)*np.cos(phi) + np.sin(psi)*np.sin(phi), np.sin(psi)*np.sin(theta)*np.cos(phi) - np.cos(psi)*np.sin(phi), np.cos(theta)*np.cos(phi)]])
+        C_lgcv2body = np.array([[np.cos(psi)*np.cos(theta), np.sin(psi)*np.cos(theta), -np.sin(theta)],
+                      [np.cos(psi)*np.sin(theta)*np.sin(phi) - np.sin(psi)*np.cos(phi), np.sin(psi)*np.sin(theta)*np.sin(phi) + np.cos(psi)*np.cos(phi), np.cos(theta)*np.sin(phi)],
+                    [np.cos(psi)*np.sin(theta)*np.cos(phi) + np.sin(psi)*np.sin(phi), np.sin(psi)*np.sin(theta)*np.cos(phi) - np.cos(psi)*np.sin(phi), np.cos(theta)*np.cos(phi)]])
         
 
         # # change this to quaternions
-        C_lgcv2body_quat = np.array([[qw**2+qx**2-qy**2-qz**2, 2*(qx*qy-qw*qz), 2*(qx*qz-qw*qy)],
-                                [2*(qx*qy+qw*qz), qw**2*qx**2+qy**2+qz**2, 2*(qy*qz-qw*qx)],
-                                [2*(qx*qz-qw*qy), 2*(qy*qz+qw*qx), qw**2-qx**2-qy**2+qz**2]])
+        C_lgcv2body_quat = np.array([[qw**2 + qx**2 - qy**2 - qz**2, 2*(qx*qy - qw*qz), 2*(qx*qz + qw*qy)],
+                                [2*(qx*qy + qw*qz), qw**2 - qx**2 + qy**2 - qz**2, 2*(qy*qz - qw*qx)],
+                                [2*(qx*qz - qw*qy), 2*(qy*qz + qw*qx), qw**2 - qx**2 - qy**2 + qz**2]]).T
 
+
+
+        q0 = np.sqrt( (np.trace(C_lgcv2body)+1) / 4 )
+        q1 = np.sqrt(C_lgcv2body[0][0]/2 *(1 - np.trace(C_lgcv2body)) / 4 )
+        q2 = np.sqrt(C_lgcv2body[1][1]/2 *(1 - np.trace(C_lgcv2body)) / 4 )
+        q3 = np.sqrt(C_lgcv2body[2][2]/2 *(1 - np.trace(C_lgcv2body)) / 4 )
+
+        qR = np.array([q0,q1,q2,q3])
+        
         # y = C_lgcv @ ref_vectors_lgcv.T
+        I_star = np.diag(np.diag([1,-1,-1,-1]))
+
+        # have to convert vectors to quaternion??
+        # vector1 = np.pad(ref_vectors_lgcv.T[0], (1,0))
+        # print(vector1)
+        # print(qR)
+        # y = qR @ vector1 @ (qR*I_star).T
+
+        print(ref_vectors_lgcv)
         y = C_lgcv2body_quat @ ref_vectors_lgcv.T
+
+        print("y_quat", y)
+        print()
+        y = C_lgcv2body @ ref_vectors_lgcv.T
+        print("y", y)
+        # these are totally different what the actual fuck
+
+
+        yo
+
+
         # print("y", y)
 
         # y is in body frame
@@ -474,13 +503,13 @@ att_init = (np.array([10,32,-45]))
 # this is in lgcv??
 vector_obs = np.array([[ 0.3,  0.5,  0.3],[-0.08, -0.01,   0.5], [ 0.4, -0.9, -0.4],[ 0.4, -0.9, -0.3]])
 vector_obs = np.array([[-0.3, 0.3, -0.5], [-0.4, -0.2, -0.01], [-0.2, 0.5, 0.9], [-0.2, -0.5, 0.9]])
-vector_obs = np.array([[-0.0879, 0.5242, -0.6383],[-0.3319, 0.3281, 0.2055], [0.8465, 0.0540, 0.6485]])
+vector_obs = np.array([[-0.0879, 0.5242, -0.6383],[-0.3319, 0.3281, 0.2055], [0.8465, 0.0540, 0.6485],[0.8465, 0.0540, 0.6485]])
 
 # [[ 0.48208398  0.58341093  0.34238388]
 #  [-0.08427267 -0.0996557   0.49291668]
 #  [ 0.41381351 -0.90926659 -0.37681912]
 #  [ 0.41381351 -0.90926659 -0.37681912]]
-ref_vectors_lgcv = np.array([[0.2,0.7,-0.4],[0.1,0.3,0.4],[0.7,-0.8,0.1] ])
+ref_vectors_lgcv = np.array([[0.2,0.7,-0.4],[0.1,0.3,0.4],[0.7,-0.8,0.1],[0.7,-0.8,0.1]  ])
 # needs to be in radians
 att_opt, pdop, att_store, i, datts = nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init)
 
