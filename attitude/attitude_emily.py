@@ -446,10 +446,16 @@ def nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init):
         
 
         if np.sum(np.abs(datt) > tol):
-            print(quat2euler(att_opt))
-            print("att_opt", att_opt)
+            # so euler2quat is wrong
+            print("should be same", (euler2quat(quat2euler(att_opt))))
+            print("att_opt", (att_opt))
+
+            # can't just add like this!! because i'm making my quaternion longer
+
             att_opt = att_opt + datt.T
-            print("datt", datt)
+            att_opt = att_opt/np.linalg.norm(att_opt)
+
+            print()
 
             # print(quat2euler(datt))
             datts.append(np.abs(np.linalg.norm(datt)))
