@@ -29,7 +29,7 @@ Planning for function
 
 
 
-def nlls_quaternions_weights(vector_obs, ref_vectors_lgcv, att_init):
+def nlls_euler_weights(vector_obs, ref_vectors_lgcv, att_init):
     """
     known vectors ref_vectors_lgcv m
     y measured vectors in body frame vector_obs
@@ -248,7 +248,7 @@ def quat2euler(q):
 # print(quat2euler(np.array([-0.09229596 , 0.43045933,  0.56098553 , 0.70105738])))
 # yo
 
-def nlls_euler_weights(vector_obs, ref_vectors_lgcv, att_init):
+def nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init):
     """
     known vectors ref_vectors_lgcv m
     y measured vectors in body frame vector_obs
@@ -356,18 +356,23 @@ def nlls_euler_weights(vector_obs, ref_vectors_lgcv, att_init):
 
         H = []
         for m in vector_obs:
-            I_star = np.diag(np.diag([1,-1,-1,-1]))
-            H_quat = C_lgcv2body_quat*I_star + 
-            H.append(np.array())
+            # I_star = np.diag(np.diag([1,-1,-1,-1]))
+            # H_quat = C_lgcv2body_quat*I_star + 
+            H.append(-2*np.array([np.array([qz, qy, qx, qw])*m[0],
+                        np.array([qw, -qx, qy, -qz])*m[1],
+                        np.array([-qx, -qw, qz, qy])*m[2]]))
             
-            f
-            # H11 = 
+        #     f
+        #     # H11 = 
 
 
+        # wxyz = 1234
+            # H =
 
 
-        # # # For EULER:
+        # For EULER:
         # H = []
+        
         # for m in vector_obs:
         #     H11 = 0
         #     H12 = -np.cos(psi)*np.sin(theta)*m[0] - np.sin(psi)*np.sin(theta)*m[1] - np.cos(theta)*m[2]
@@ -388,10 +393,10 @@ def nlls_euler_weights(vector_obs, ref_vectors_lgcv, att_init):
         #         [H21, H22, H23],
         #         [H31, H32, H33]]))
         
-        # H = np.array(H)
+        H = np.array(H)
         # print(H.shape)
         # Reshaping to be 2 dimensional
-        H = H.reshape(vector_obs.size,3)
+        H = H.reshape(vector_obs.size,4)
         # make H for each sensor
         # H = np.array([H,H,H])
 
@@ -424,7 +429,7 @@ def nlls_euler_weights(vector_obs, ref_vectors_lgcv, att_init):
 
         # W = np.eye(3)
         
-        # print(H.shape)
+        print(H.shape)
         # PDOP        
         pdop = np.sqrt(np.trace( np.linalg.inv( H.T @ H )))
 
@@ -450,7 +455,7 @@ def nlls_euler_weights(vector_obs, ref_vectors_lgcv, att_init):
             datts.append(np.abs(np.linalg.norm(datt)))
             print(att_opt)
             i +=1
-            att_store = np.append(att_store,[att_opt], axis = 0)
+            att_store = np.append(att_store,[quat2euler(att_opt)], axis = 0)
         else:
             break
     
@@ -477,7 +482,7 @@ vector_obs = np.array([[-0.0879, 0.5242, -0.6383],[-0.3319, 0.3281, 0.2055], [0.
 #  [ 0.41381351 -0.90926659 -0.37681912]]
 ref_vectors_lgcv = np.array([[0.2,0.7,-0.4],[0.1,0.3,0.4],[0.7,-0.8,0.1] ])
 # needs to be in radians
-att_opt, pdop, att_store, i, datts = nlls_euler_weights(vector_obs, ref_vectors_lgcv, att_init)
+att_opt, pdop, att_store, i, datts = nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init)
 
 print("Final attitude estimation", att_opt)
 print(att_store.shape)
