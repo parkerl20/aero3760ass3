@@ -13,9 +13,15 @@ from spacesim import sensor
 from spacesim import constants as const
 from spacesim import estimation as est
 from spacesim import util
+from spacesim import orbit as orb
 
-import numpy as np
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.ticker import MultipleLocator
+from pyvista import examples as pv_ex
+import pyvista as pv
 import matplotlib.pyplot as plt
+import numpy as np
+import datetime as dt
 
 def od_simulation(
     propagation_time: float,
@@ -403,3 +409,102 @@ def log_EKF_algo(
     logger.get_log("v_residual").append(v - v_true)
     
     return
+
+def main() -> None:
+    a = 6932386.57371916
+    e = 0
+    i = -33
+    arg_p = 0
+    RAAN = 238.82
+    theta = 0
+    epoch = dt.datetime(2023, 1, 1)
+    
+    propagation_time = 20
+    
+    SPY = orb.Orbit(
+        a,
+        e,
+        i,
+        RAAN,
+        arg_p,
+        theta,
+        cb.earth,
+        epoch,
+        name="SPY",
+        colour="blue"
+    )
+    
+    realtime_sat = sat.RealTimeSatellite(
+        a,
+        e,
+        i,
+        RAAN,
+        arg_p,
+        theta,
+        cb.earth,
+        epoch,
+        name="Real Time",
+        colour="red",
+        propagation_length=10,
+        propagation_step=1
+    )
+    
+    
+    imu_sensor = sensor.SatelliteSensor(
+        "imu",
+        np.eye(3),
+        imu_simulator,
+        frequency=0.5
+    )
+    
+    ekf = est.ExtendedKalmanFilter(
+        None,
+        np.zeros(6),
+        np.eye(6)
+    )
+    
+    ekf_algorithm = sat.SatelliteAlgorithm(
+        "Orbit Determination EKF",
+        ekf,
+        ekf_simulator
+    )
+    
+    realtime_sat.attach_sensor(imu_sensor)
+    realtime_sat.add_algorithm(ekf_algorithm)
+    
+    # r_spy, v_spy, t_spy = SPY.propagate(
+    #     propagation_time,
+    #     max_step=1
+    # )
+    
+    # DO real time orbit
+    r_rt, v_rt, t_rt = [], [], []
+    
+    for r_i, v_i, t_i in realtime_sat:
+        if t_i > propagation_time:
+            break
+    
+        print(t_i)
+        r_rt.append(r_i)
+        v_rt.append(v_i)
+        t_rt.append(t_i)
+        # print(f"Real time: {t_i}")
+        
+    
+    r_rt = np.array(r_rt).T
+    v_rt = np.array(v_rt).T
+    t_rt = np.array(t_rt)
+    
+    # Plot
+    # fig = plt.figure()
+    # ax = fig.add_subplot(111, projection='3d')
+    
+    # ax.plot(r_spy[0], r_spy[1], r_spy[2], label="SPY")
+    # ax.plot(r_rt[0], r_rt[1], r_rt[2], label="Real Time")
+    # ax.legend()
+    
+    # plt.show()
+    
+
+if __name__ == "__main__":
+    main()
