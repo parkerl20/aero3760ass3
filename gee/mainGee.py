@@ -9,31 +9,32 @@ def mainGee(r_obv, t_obv, epoch):
     functions.initialise_credentials()
 
     # Latitude and longitude conversion
-    lon_lat = functions.eci_to_llh(r_obv, t_obv, epoch)
+    # lon_lat = functions.eci_to_llh(r_obv, t_obv, epoch)
+    lon_lat = functions.eci_to_llh_nsw(r_obv, t_obv, epoch, num_points=100)
 
     # Sentinel-2A satellite
     # Map = functions.S2A("2019-12-01", "2020-01-31")
     # Map = functions.surface_temperature()
     # Map = functions.fires()
     # Map = functions.S2A_NDVI("2019-12-01", "2020-01-31")
-    Map = functions.S2A_coverage("2019-12-01", "2020-01-31", lon_lat)
-    # Map = functions.heat_map(lon_lat)
+    # Map = functions.S2A_coverage("2019-12-01", "2020-01-31", lon_lat)
+    Map = functions.plot_red_points(lon_lat, circle_radius=1000)
 
     # Create map
     # functions.create_map(Map, "NSW Infrared")
     # functions.create_map(Map, "Surface temperature")
     # functions.create_map(Map, "Fires")
     # functions.create_map(Map, "NDVI")
-    functions.create_map(Map, "S2A coverage")
-    # functions.create_map(Map, "Heatmap")
+    # functions.create_map(Map, "S2A coverage")
+    functions.create_map(Map, "Red")
 
     # Show map
     # functions.show_map("NSW Infrared")
     # functions.show_map("Surface temperature")
     # functions.show_map("Fires")
     # functions.show_map("NDVI")
-    functions.show_map("S2A coverage")
-    # functions.show_map("Heatmap")
+    # functions.show_map("S2A coverage")
+    functions.show_map("Red")
 
 
 if __name__ == "__main__":

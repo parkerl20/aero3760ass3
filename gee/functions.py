@@ -241,42 +241,63 @@ def elevation_5m():
     return Map
 
 
-def heat_map(lon_lat):
-    # Heatmap visualization parameter
-    heatmap_vis = {
-        'min': 0,
-        'max': 1,  # Normalized values
-        'palette': ['red', 'yellow', 'green', 'cyan', 'blue']
+# def heat_map(lon_lat):
+#     # Heatmap visualization parameter
+#     heatmap_vis = {
+#         'min': 0,
+#         'max': 1,  # Normalized values
+#         'palette': ['red', 'yellow', 'green', 'cyan', 'blue']
+#     }
+
+#     # Coverage points
+#     multipoint = ee.Geometry.MultiPoint(lon_lat)
+
+#     # Initialize heatmaps
+#     heatmaps = []
+
+#     for coords in lon_lat:
+#         point = ee.Geometry.Point(coords)
+#         # Create an image where pixel values represent distance to the point
+#         distance_image = ee.Image().paint(point, 0).fastDistanceTransform().sqrt()
+#         normalized_distance = distance_image.divide(20000)  # Normalize to [0, 1] range
+#         gradient = ee.Image.constant(1).subtract(normalized_distance)  # Convert to gradient
+#         heatmaps.append(gradient)
+
+#     # Combine individual heatmaps
+#     combined_heatmap = ee.ImageCollection(heatmaps).reduce(ee.Reducer.min())
+
+#     # Clip the heatmap using the buffered regions around the multipoint locations
+#     buffered_multipoint = multipoint.buffer(20000)
+#     clipped_heatmap = combined_heatmap.clip(buffered_multipoint)
+
+#     # Map initialization
+#     Map = geemap.Map() 
+#     Map.set_center(146.9211, -31.2532, 6)  # Center of NSW
+#     Map.add_ee_layer(clipped_heatmap, heatmap_vis, 'Heatmap Regions')
+
+#     return Map
+
+
+
+def plot_red_points(lon_lat, circle_radius):
+    # Red color visualization
+    red_vis = {
+        'palette': ['red']
     }
-
-    # Coverage points
+    
+    # Create a MultiPoint geometry from the coordinates
     multipoint = ee.Geometry.MultiPoint(lon_lat)
+    
+    # Paint the multipoint geometry on an image
+    buffered_multipoint = multipoint.buffer(circle_radius)  # Radius of circle
+    red_points_image = ee.Image().paint(buffered_multipoint, 0)
 
-    # Initialize heatmaps
-    heatmaps = []
-
-    for coords in lon_lat:
-        point = ee.Geometry.Point(coords)
-        # Create an image where pixel values represent distance to the point
-        distance_image = ee.Image().paint(point, 0).fastDistanceTransform().sqrt()
-        normalized_distance = distance_image.divide(20000)  # Normalize to [0, 1] range
-        gradient = ee.Image.constant(1).subtract(normalized_distance)  # Convert to gradient
-        heatmaps.append(gradient)
-
-    # Combine individual heatmaps
-    combined_heatmap = ee.ImageCollection(heatmaps).reduce(ee.Reducer.min())
-
-    # Clip the heatmap using the buffered regions around the multipoint locations
-    buffered_multipoint = multipoint.buffer(20000)
-    clipped_heatmap = combined_heatmap.clip(buffered_multipoint)
-
-    # Map initialization
-    Map = geemap.Map() 
+    # Map initialization (empty map)
+    Map = geemap.Map()
     Map.set_center(146.9211, -31.2532, 6)  # Center of NSW
-    Map.add_ee_layer(clipped_heatmap, heatmap_vis, 'Heatmap Regions')
+    Map.add_ee_layer(red_points_image, red_vis, 'Red Points')
 
     return Map
-
 
 
 
@@ -477,7 +498,7 @@ def eci_to_llh(r_eci, t_eci, epoch):
     return lon_lat
 
 
-def eci_to_llh_nsw(r_eci, t_eci, epoch):
+def eci_to_llh_nsw(r_eci, t_eci, epoch, num_points):
     # 2D array for latitude longitude storage
     lon_lat = [[0.0, 0.0] for i in range(len(t_eci))]
 
@@ -501,4 +522,32 @@ def eci_to_llh_nsw(r_eci, t_eci, epoch):
                         and nsw_bounds["lon_min"] <= point[0] <= nsw_bounds["lon_max"]]
 
 
-    return filtered_lon_lat
+    # Adding interpolated points between consecutive points
+    smooth_lon_lat = []
+    for i in range(len(filtered_lon_lat) - 1):
+        smooth_lon_lat.append(filtered_lon_lat[i])
+        smooth_lon_lat.extend(interpolate_points(filtered_lon_lat[i], filtered_lon_lat[i+1], num_points)) 
+    if filtered_lon_lat:
+        smooth_lon_lat.append(filtered_lon_lat[-1])
+
+    return smooth_lon_lat
+
+
+
+def interpolate_points(A, B, num_points):
+    # Add in points between lon_lat for a smoother curve    
+    x1, y1 = A
+    x2, y2 = B
+    
+    # Delta
+    x_delta = (x2 - x1) / (num_points + 1)
+    y_delta = (y2 - y1) / (num_points + 1)
+    
+    # Generate interpolated points
+    interpolated_points = []
+    for i in range(1, num_points + 1):
+        new_x = x1 + i * x_delta
+        new_y = y1 + i * y_delta
+        interpolated_points.append((new_x, new_y))
+        
+    return interpolated_points

@@ -48,7 +48,6 @@ def mainOrbit():
    
    # Simulate the orbit
    results = simulateOrbit(a, e, i, rt_asc, arg_p, theta)
-   print(len(results))
 
    return results
 
