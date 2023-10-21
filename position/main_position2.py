@@ -51,14 +51,7 @@ def main_position(
         r[:,1], v_1, const.MU_EARTH
     ).flatten()
     
-    # Temporary values
-    # a = 6932386.765062842
-    # e = 0.021
-    # i = 33
-    # RAAN = 58.82
-    # arg_p = 180
-    # true_anom = 0
-    # epoch = dt.datetime(2023, 1, 1)
+    
     
     # Set up satellite
     satellite = sat.RealTimeSatellite(
