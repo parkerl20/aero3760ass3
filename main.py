@@ -12,18 +12,18 @@ import datetime as dt
 
 def main():
     # Runs the main orbit code with results being r, v, t of the 4 satellites
-    results = mainOrbit()
+    results = mainOrbit(show_results=0)
     
     # ---------------- Orbit determination setup
     # First three position vectors, used for IOD
-    r_obv = results[0]['r'][:]
-    t_obv = results[0]['t'][:]
-    epoch = dt.datetime(2023, 1, 1)
+    # r_obv = results[0]['r'][:]
+    # t_obv = results[0]['t'][:]
+    # epoch = dt.datetime(2023, 1, 1)
 
     # main_position(r_obv, t_obv, epoch)
 
     # Runs the main GEE code opening a map in your browser
-    mainGee(r_obv, t_obv, epoch)
+    mainGee(results)
 
     return 0
 
