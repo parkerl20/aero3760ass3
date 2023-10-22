@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.spatial.transform import Rotation
-from attitude.pos_sun import *
+from pos_sun import *
 
 '''
 NLLS for Attitude Determination
