@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.spatial.transform import Rotation
+from stars_sun_pos import *
 
 '''
 NLLS for Attitude Determination
@@ -147,7 +148,6 @@ def nlls_euler_weights(vector_obs, ref_vectors_lgcv, att_init):
         #     [0,0,0,0,0,0,0,0,0,0,0,1]
 
         # ])
-
         W[0,0] = 0.2
         W[1,1] = 0.2
         W[2,2] = 0.2
@@ -270,7 +270,7 @@ def nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init):
     # Initial iteration params
     i = 0
     max_iter = 100
-    tol =  1e-8
+    tol =  1e-4
     datt = 100
 
     # initial guess in quaternion
@@ -278,6 +278,7 @@ def nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init):
     # att_opt = att_init
 
     datts = []
+    dops =[]
 
     # until converges
     while (i < max_iter) and (np.sum(np.abs(datt) > tol)):
@@ -335,7 +336,6 @@ def nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init):
 
         # for each observed vector measurement body lgcv frame
         # make H for each sensor: 
-        # TODO fix up this
         for m in vector_obs:
             H11 = 2*(qw*m[0] + qz*m[1] - qy*m[2])
             H12 = 2*(qx*m[0] + qy*m[1] + qz*m[2])
@@ -364,11 +364,22 @@ def nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init):
         # Reshaping to be 2 dimensional
         H = H.reshape(vector_obs.size,4)
 
-       # Equal weights matrix for 
+        # Weights matrix based on sensor accuracy
+
         W = np.eye(vector_obs.size)
-        # W[0,0] = 0.9
-        # W[1,1] = 0.9
-        # W[2,2] = 0.9
+        # Sun sensor accuracy
+        # W[0,0] = 0.22
+        # W[1,1] = 0.22
+        # W[2,2] = 0.22
+
+        # # Star tracker z component less accurate
+        # W[5,5] = 0.14
+        # W[8,8] = 0.14
+        # W[11,11] = 0.14
+        # W[14,14] = 0.14
+        # W[17,17] = 0.14
+        
+
      
         # W = np.array([
         #     [0.2,0,0,0,0,0,0,0,0,0,0,0],
@@ -387,10 +398,11 @@ def nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init):
 
        
     
-        # Dilution of Precision     
-        pdop = np.sqrt(np.trace( np.linalg.inv( H.T @ H )))
+        # Dilution of Precision for w,x,y,z of quaternion     
+        dops =  [np.sqrt(np.linalg.inv( H.T @ H)[0,0]), np.sqrt(np.linalg.inv( H.T @ H)[1,1]), np.sqrt(np.linalg.inv( H.T @ H)[2,2]), np.sqrt(np.linalg.inv( H.T @ H)[3,3])]
 
         # NLLS calculation for change in attitude for next iterations
+        
         datt = np.linalg.inv(H.T @ W @ H) @ H.T @ W @ dy
         print(datt)
         # datt is quaternion wxyz
@@ -436,8 +448,8 @@ def nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init):
     
     print()
     print(f"Number of iterations to converge: {i}")
-    print("PDOP:",pdop)
-    return att_opt, pdop, att_store, i, datts
+    # print("PDOP:",dops)
+    return att_opt, dops, att_store, i, datts
 
 def quaternion_multiply(quaternion1, quaternion0):
     w0, x0, y0, z0 = quaternion0
@@ -447,29 +459,139 @@ def quaternion_multiply(quaternion1, quaternion0):
                         -x1*z0 + y1*w0 + z1*x0 + w1*y0,
                         x1*y0 - y1*x0 + z1*w0 + w1*z0])
 
+def findPositionsOfSun():
+
+    # Load the JPL ephemeris DE421 (covers 1900-2050).
+    planets = skyfield.load('de421.bsp')
+    earth, mars = planets['earth'], planets['mars']
+
+    # What's the position of Mars, viewed from Earth?
+    astrometric = earth.at(t).observe(mars)
+    ra, dec, distance = astrometric.radec()
+
+    # convert to LGCV
+
+
 def main():
 
-    att_init = (np.array([10,32,-45]))
+    # att_init = (np.array([10,32,-45]))
+    att_init = (np.array([5,5,5]))
 
     # att_data = np.array([[10,31,-41],[9,30,-47],[14,32,-44]])
 
-    # say we have 4 sensors
+    # say we have 4 sensors this is sensor data
     # this is in body frame
     vector_obs = np.array([[ 0.3,  0.5,  0.3],[-0.08, -0.01,   0.5], [ 0.4, -0.9, -0.4],[ 0.4, -0.9, -0.3]])
     vector_obs = np.array([[-0.3, 0.3, -0.5], [-0.4, -0.2, -0.01], [-0.2, 0.5, 0.9], [-0.2, -0.5, 0.9]])
     # vector_obs = np.array([[-0.0879, 0.5242, -0.6383],[-0.3319, 0.3281, 0.2055], [0.8465, 0.0540, 0.6485]])
-    vector_obs = np.array([[ 0.48,  0.58  ,0.34],[-0.08 ,-0.09  , 0.49],[ 0.41 ,-0.90, -0.37]])
+
+
+
+
+    # clean data
+    # sensor data in the body frame - corresponds to local frame data
+    vector_obs = np.array([[ 0.48,  0.58  ,0.34],[-0.08 ,-0.09  , 0.49]])#[ 0.41 ,-0.90, -0.37]])
+
     # vector_obs = np.array([[-0.2, 1, -0.3],[-0.4, 0.3, 0.4], [0.5, -0.07, 0.3]])
     # [[ 0.48208398  0.58341093  0.34238388]
     #  [-0.08427267 -0.0996557   0.49291668]
     #  [ 0.41381351 -0.90926659 -0.37681912]
     #  [ 0.41381351 -0.90926659 -0.37681912]]
-    # this is in lgcv
-    ref_vectors_lgcv = np.array([[0.2,0.7,-0.4],[0.1,0.3,0.4],[0.7,-0.8,0.1] ])
-    # needs to be in radians
-    att_opt, pdop, att_store, i, datts = nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init)
 
-    print("Final attitude estimation", quat2euler(att_opt))
+    # this is in lgcv
+    # where does this come from
+    # link with position
+    # 
+    real_attitude = [10, 30, -45]
+
+    psi = np.deg2rad(real_attitude[0])
+    theta = np.deg2rad(real_attitude[1])
+    phi = np.deg2rad(real_attitude[2])
+
+    C_lgcv2body = np.array([[np.cos(psi)*np.cos(theta), np.sin(psi)*np.cos(theta), -np.sin(theta)],
+                      [np.cos(psi)*np.sin(theta)*np.sin(phi) - np.sin(psi)*np.cos(phi), np.sin(psi)*np.sin(theta)*np.sin(phi) + np.cos(psi)*np.cos(phi), np.cos(theta)*np.sin(phi)],
+                    [np.cos(psi)*np.sin(theta)*np.cos(phi) + np.sin(psi)*np.sin(phi), np.sin(psi)*np.sin(theta)*np.cos(phi) - np.cos(psi)*np.sin(phi), np.cos(theta)*np.cos(phi)]])
+     
+    ref_vectors_lgcv = np.array([[0.2,0.7,-0.4],[0.1,0.3,0.4]])#,[0.7,-0.8,0.1] ])
+    print("TEST",C_lgcv2body@ref_vectors_lgcv.T )
+    print("TEST",C_lgcv2body@ref_vectors_lgcv[0] )
+
+
+
+    # receive sensor data (stars position and sun position) based on 5 stars detected by star trackers
+    # for 22 october
+    t = 1
+    num_stars = 5
+    stars, sun = findStarSunPositions(num_stars,22,t)
+
+    # number of sensor measurements at one time interval
+    n = 5
+
+    ref_vectors = np.array([sun, stars[:,0], stars[:,1],stars[:,2], stars[:,3], stars[:,4]])
+    # duplicate for the number of measurements we have from each timestep
+    ref_vectors = np.repeat(ref_vectors, n, axis = 0)
+
+
+
+    # in euler angles
+    # sun sensor random error 47 arc seconds = 0.01306 degrees
+    # star tracker random error XYZ = 50, 50, 350 microradians = 0.00286, 0.00286, 0.02005 degrees
+    
+
+    # generate in 100 euler angles
+    euler_sun_sensor_errors = np.random.normal(real_attitude, 0.01306 , (n,3))
+    euler_star_tracker_errors =np.random.normal(real_attitude, [0.00286, 0.00286, 0.02005], (n,3)) 
+
+    print("HEY", euler_sun_sensor_errors[0])
+    observed_vectors = np.zeros((n*(num_stars+1), 3))
+
+    # generate data for sun sensor
+    for angles in euler_sun_sensor_errors:
+
+        psi = np.deg2rad(angles[0])
+        theta = np.deg2rad(angles[1])
+        phi = np.deg2rad(angles[2])
+
+        C_lgcv2body = np.array([[np.cos(psi)*np.cos(theta), np.sin(psi)*np.cos(theta), -np.sin(theta)],
+                      [np.cos(psi)*np.sin(theta)*np.sin(phi) - np.sin(psi)*np.cos(phi), np.sin(psi)*np.sin(theta)*np.sin(phi) + np.cos(psi)*np.cos(phi), np.cos(theta)*np.sin(phi)],
+                    [np.cos(psi)*np.sin(theta)*np.cos(phi) + np.sin(psi)*np.sin(phi), np.sin(psi)*np.sin(theta)*np.cos(phi) - np.cos(psi)*np.sin(phi), np.cos(theta)*np.cos(phi)]])
+
+
+        observed_vectors[0] = (C_lgcv2body @ ref_vectors[0])
+    
+    # generate data for star_tracker sensor
+
+
+
+    for angles in euler_star_tracker_errors:
+
+        psi = np.deg2rad(angles[0])
+        theta = np.deg2rad(angles[1])
+        phi = np.deg2rad(angles[2])
+
+        C_lgcv2body = np.array([[np.cos(psi)*np.cos(theta), np.sin(psi)*np.cos(theta), -np.sin(theta)],
+                      [np.cos(psi)*np.sin(theta)*np.sin(phi) - np.sin(psi)*np.cos(phi), np.sin(psi)*np.sin(theta)*np.sin(phi) + np.cos(psi)*np.cos(phi), np.cos(theta)*np.sin(phi)],
+                    [np.cos(psi)*np.sin(theta)*np.cos(phi) + np.sin(psi)*np.sin(phi), np.sin(psi)*np.sin(theta)*np.cos(phi) - np.cos(psi)*np.sin(phi), np.cos(theta)*np.cos(phi)]])
+     
+        observed_vectors[1:num_stars+1] = ((C_lgcv2body @ ref_vectors[1:num_stars+1].T).T)
+
+
+    
+    observed_vectors = np.array(observed_vectors)
+    print(observed_vectors)
+
+    # needs to be in radians
+    att_opt, dops, att_store, i, datts = nlls_quaternion_weights(observed_vectors, ref_vectors, att_init)
+
+    print("DOP for quaternion params W X Y Z:", dops)
+    # dops times vector error for actual mapping error
+    # errors are 1° maybe
+    # print("DOP for euler params Z Y X:", quat2euler(dops))
+
+    # get actual error for 
+    
+
+    print("Final attitude estimation Z Y X:", quat2euler(att_opt))
     print(att_store.shape)
     plt.figure()
     plt.plot(range(len(att_store)), att_store[:,0], label = "Yaw")
