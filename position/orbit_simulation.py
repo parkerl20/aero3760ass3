@@ -95,7 +95,9 @@ def orbit_simulation(
     # Simulate the satellite
     r_residuals = [[], [], []]
     v_residuals = [[], [], []]
+    raw_r = [[], [], []]
     time_steps = []    
+    gnss_times = []
     
     for r_true, v_true, t in satellite:
         if t > propagation_time:
@@ -123,8 +125,11 @@ def orbit_simulation(
         v_residuals[1].append(v_true[1] - ekf_v[1])
         v_residuals[2].append(v_true[2] - ekf_v[2])
         
+        # Raw gps measurements
+        
         time_steps.append(t)
     
+    # raw_r = 
     create_od_results(
         r_residuals,
         v_residuals,
@@ -256,7 +261,7 @@ def EKF_algo_function(
             ekf.algorithm.get_state()[:3].flatten(),
             ekf.algorithm.get_state()[3:].flatten(),
             satellite.current_r_eci.flatten(),
-            satellite.current_v_eci.flatten()
+            satellite.current_v_eci.flatten(),
         )
     
     return
@@ -267,7 +272,7 @@ def log_EKF_algo(
     r: np.ndarray,
     v: np.ndarray,
     r_true: np.ndarray,
-    v_true: np.ndarray
+    v_true: np.ndarray,
 ) -> None:
     """Logging function for the OD EKF algorithm
     """
@@ -296,53 +301,56 @@ def create_od_results(
     print(f"z - mean: {np.mean(r_log[2])}\tstd: {np.std(r_log[2])}")
     
     # Plot the residuals
-    r_fig, r_ax = plt.subplots()
     
-    r_ax.plot(time_steps, r_residuals[0], label="x")
-    r_ax.plot(time_steps, r_residuals[1], label="y")
-    r_ax.plot(time_steps, r_residuals[2], label="z")
+    # Plot all on one graph
+    # r_fig, r_ax = plt.subplots()
     
-    r_ax.set_title("Residuals in position")
-    r_ax.set_xlabel("Time (s)")
-    r_ax.set_ylabel("Residual (m)")
+    # r_ax.plot(time_steps, r_residuals[0], label="x")
+    # r_ax.plot(time_steps, r_residuals[1], label="y")
+    # r_ax.plot(time_steps, r_residuals[2], label="z")
     
-    r_ax.legend()
-    r_fig.tight_layout()
+    # r_ax.set_title("Residuals in position")
+    # r_ax.set_xlabel("Time (s)")
+    # r_ax.set_ylabel("Residual (m)")
     
-    r_fig.savefig("4-Plots/od_r_residuals.png")
+    # r_ax.legend()
+    # r_fig.tight_layout()
     
-    # r_ax.plot(time_steps, r_residuals[0])
+    # r_fig.savefig("4-Plots/od_r_residuals.png")
+    
+    rx_fig, rx_ax = plt.subplots(3,1)
+    rx_ax.plot(time_steps, r_residuals[0])
     
     
-    # rx_ax.set_title("Residuals in x")
-    # rx_ax.set_xlabel("Time (s)")
-    # rx_ax.set_ylabel("Residual (m)")
+    rx_ax.set_title("Residuals in x")
+    rx_ax.set_xlabel("Time (s)")
+    rx_ax.set_ylabel("Residual (m)")
     
-    # rx_fig.tight_layout()
+    rx_fig.tight_layout()
     
-    # rx_fig.savefig("4-Plots/od_rx_residuals.png")
+    rx_fig.savefig("4-Plots/od_rx_residuals.png")
     
-    # ry_fig, ry_ax = plt.subplots()
+    ry_fig, ry_ax = plt.subplots()
     
-    # ry_ax.plot(time_steps, r_residuals[1])
+    ry_ax.plot(time_steps, r_residuals[1])
     
-    # ry_ax.set_title("Residuals in y")
-    # ry_ax.set_xlabel("Time (s)")
-    # ry_ax.set_ylabel("Residual (m)")
+    ry_ax.set_title("Residuals in y")
+    ry_ax.set_xlabel("Time (s)")
+    ry_ax.set_ylabel("Residual (m)")
     
-    # ry_fig.tight_layout()
-    # ry_fig.savefig("4-Plots/od_ry_residuals.png")
+    ry_fig.tight_layout()
+    ry_fig.savefig("4-Plots/od_ry_residuals.png")
     
-    # rz_fig, rz_ax = plt.subplots()
+    rz_fig, rz_ax = plt.subplots()
     
-    # rz_ax.plot(time_steps, r_residuals[2])
+    rz_ax.plot(time_steps, r_residuals[2])
     
-    # rz_ax.set_title("Residuals in z")
-    # rz_ax.set_xlabel("Time (s)")
-    # rz_ax.set_ylabel("Residual (m)")
+    rz_ax.set_title("Residuals in z")
+    rz_ax.set_xlabel("Time (s)")
+    rz_ax.set_ylabel("Residual (m)")
     
-    # rz_fig.tight_layout()
-    # rz_fig.savefig("4-Plots/od_rz_residuals.png")
+    rz_fig.tight_layout()
+    rz_fig.savefig("4-Plots/od_rz_residuals.png")
     
     plt.show() 
     return

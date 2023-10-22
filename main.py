@@ -35,7 +35,7 @@ def main():
         epoch
     )
 
-    # mainGee(results)
+    mainGee(results)
 
     return 0
 
