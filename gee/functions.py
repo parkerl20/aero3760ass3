@@ -172,7 +172,7 @@ def S2A_NDVI(start_date: str, end_date: str):
     return Map
 
 
-def S2A_coverage(start_date: str, end_date: str, lon_lat):
+def S2A_coverage(start_date: str, end_date: str, lon_lat, circle_radius):
    # Sentinel-2A satellite
     dataset = (
         ee.ImageCollection('COPERNICUS/S2_SR')
@@ -206,7 +206,9 @@ def S2A_coverage(start_date: str, end_date: str, lon_lat):
 
     # Coverage points
     multipoint = ee.Geometry.MultiPoint(lon_lat)
-    coverage = multipoint.buffer(20000)
+    # point = ee.Geometry.Point(lon_lat[6]) # Point near sydney
+    # coverage = point.buffer(circle_radius)
+    coverage = multipoint.buffer(circle_radius)
     # mean_ndvi_clipped = mean_ndvi.clip(coverage)
     infrared_clipped = dataset.mean().clip(coverage)
     # Map.add_ee_layer(mean_ndvi_clipped, ndvi_vis, "NDVI")
@@ -241,49 +243,14 @@ def elevation_5m():
     return Map
 
 
-# def heat_map(lon_lat):
-#     # Heatmap visualization parameter
-#     heatmap_vis = {
-#         'min': 0,
-#         'max': 1,  # Normalized values
-#         'palette': ['red', 'yellow', 'green', 'cyan', 'blue']
-#     }
-
-#     # Coverage points
-#     multipoint = ee.Geometry.MultiPoint(lon_lat)
-
-#     # Initialize heatmaps
-#     heatmaps = []
-
-#     for coords in lon_lat:
-#         point = ee.Geometry.Point(coords)
-#         # Create an image where pixel values represent distance to the point
-#         distance_image = ee.Image().paint(point, 0).fastDistanceTransform().sqrt()
-#         normalized_distance = distance_image.divide(20000)  # Normalize to [0, 1] range
-#         gradient = ee.Image.constant(1).subtract(normalized_distance)  # Convert to gradient
-#         heatmaps.append(gradient)
-
-#     # Combine individual heatmaps
-#     combined_heatmap = ee.ImageCollection(heatmaps).reduce(ee.Reducer.min())
-
-#     # Clip the heatmap using the buffered regions around the multipoint locations
-#     buffered_multipoint = multipoint.buffer(20000)
-#     clipped_heatmap = combined_heatmap.clip(buffered_multipoint)
-
-#     # Map initialization
-#     Map = geemap.Map() 
-#     Map.set_center(146.9211, -31.2532, 6)  # Center of NSW
-#     Map.add_ee_layer(clipped_heatmap, heatmap_vis, 'Heatmap Regions')
-
-#     return Map
-
-
 
 def plot_red_points(lon_lat, circle_radius):
     # Red color visualization
     red_vis = {
         'palette': ['red']
     }
+    # Adding the opera house as a point
+    lon_lat.append([151.2153, -33.8568])
     
     # Create a MultiPoint geometry from the coordinates
     multipoint = ee.Geometry.MultiPoint(lon_lat)
@@ -520,6 +487,10 @@ def eci_to_llh_nsw(r_eci, t_eci, epoch, num_points):
     filtered_lon_lat = [point for point in lon_lat 
                         if nsw_bounds["lat_min"] <= point[1] <= nsw_bounds["lat_max"] 
                         and nsw_bounds["lon_min"] <= point[0] <= nsw_bounds["lon_max"]]
+    
+    # When extra points are not needed for visualisation
+    if(num_points == 0):
+        return filtered_lon_lat
 
 
     # Adding interpolated points between consecutive points

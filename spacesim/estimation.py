@@ -148,6 +148,29 @@ class ExtendedKalmanFilter():
         """
         transition_mtx = self.transition_matrix_func(*f_args)
         return transition_mtx @ self.curr_state_est
+
+    def apply_input(
+        self,
+        system_input: np.ndarray,
+        input_matrix: np.ndarray,
+        *,
+        f_args: tuple = ()
+    ) -> np.ndarray:
+        """Applies an input to the system, updating the current state.
+
+        Args:
+            input (np.ndarray): The input vector
+            input_matrix (np.ndarray): The input model matrix
+            f_args (tuple, optional): Arguments for the transition matrix
+                function.
+
+        Returns:
+            np.ndarray: The predicted state.
+        """
+        self.curr_state_est = (
+            self.transition_matrix_func(*f_args) @ self.curr_state_est
+            + input_matrix @ system_input
+        )
     
     def get_state(self) -> np.ndarray:
         """Returns the current state estimate.

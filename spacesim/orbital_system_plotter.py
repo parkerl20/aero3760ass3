@@ -236,8 +236,8 @@ class SystemPlotter():
         x_ticks = [-180 + x for x in range(0, 380, 30)]
         y_ticks = [-90 + x for x in range(0, 195, 30)]
         
-        track_ax.set_xlabel("Longitude", fontname="Times New Roman", fontweight="bold", fontsize=12)
-        track_ax.set_ylabel("Latitude", fontname="Times New Roman", fontweight="bold", fontsize=12)
+        track_ax.set_xlabel("Longitude")
+        track_ax.set_ylabel("Latitude")
         track_ax.set_xticks(x_ticks)
         track_ax.set_yticks(y_ticks)
             
