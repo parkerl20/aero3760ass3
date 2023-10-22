@@ -5,8 +5,9 @@ from .orbitalElementsCalc import choosingOrbitsPerDay
 from .simulateOrbit import simulateOrbit
 from .orbitalElementsCalc import repeatingGroundTrackAltitude
 from .orbitalElementsCalc import choosingRepeatEccentricity
+from .orbitalElementsCalc import minimumAltitudeTest
 
-def mainOrbit():
+def mainOrbit(show_results):
    # Boundarys of NSW 
    nsw_bounds = {
     "lat_min": -28.6,
@@ -22,20 +23,23 @@ def mainOrbit():
    }
 
    # Other paramaters
-   swathe_width = abs(nsw_bounds["lat_min"] - nsw_bounds["lat_max"])  # Swathe width for one satellite to cover NSW left to right
-   i = fly_over["lat"]       # Inclination of satellite in degrees
+   SWATHE_WIDTH = 6.2  # Swathe width for one satellite to cover NSW right to left (calculated through GEE)
+   i = fly_over["lat"] - 1.5      # Inclination of satellite in degrees
    alpha = 2.4               # Spacial resolution of the chosen camera
    SINGLE_DAY = 1            # Orbit repeats every 1 day
 
    # Minimum altitude of satelltie to meet swathe_width requirement
-   a_min = minimumAltitude(swathe_width, alpha)
+   a_min = minimumAltitude(SWATHE_WIDTH)
+   print(a_min)
+   a_min = minimumAltitudeTest(SWATHE_WIDTH, alpha=2.4)
+   print(a_min)
 
    # Altitude for a repeating ground track orbit based on j: orbital periods and k:number of days
    orbits_per_day = [13, 14, 15, 16]
-   j = choosingOrbitsPerDay(a_min, i, orbits_per_day, k=SINGLE_DAY)
-   
+   j = choosingOrbitsPerDay(a_min, i, orbits_per_day, SINGLE_DAY, show_results)
+
    # Choose ideal eccentricity for minimum altitude that still meets coverage requirements
-   e = choosingRepeatEccentricity(a_min, i, j, SINGLE_DAY)   
+   e = choosingRepeatEccentricity(a_min, i, j, SINGLE_DAY, show_results)   
 
    # Chooses 15 orbits a day as the ideal number
    a = repeatingGroundTrackAltitude(j, SINGLE_DAY, i, e)
@@ -47,10 +51,10 @@ def mainOrbit():
    arg_p, theta = 0.0, 0.0  
    
    # Simulate the orbit
-   results = simulateOrbit(a, e, i, rt_asc, arg_p, theta)
+   results = simulateOrbit(a, e, i, rt_asc, arg_p, theta, show_results)
 
    return results
 
 
 if __name__ == "__main__":
-   mainOrbit()
+   mainOrbit(1)

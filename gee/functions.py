@@ -172,7 +172,7 @@ def S2A_NDVI(start_date: str, end_date: str):
     return Map
 
 
-def S2A_coverage(start_date: str, end_date: str, lon_lat):
+def S2A_coverage(start_date: str, end_date: str, lon_lat, circle_radius):
    # Sentinel-2A satellite
     dataset = (
         ee.ImageCollection('COPERNICUS/S2_SR')
@@ -206,7 +206,7 @@ def S2A_coverage(start_date: str, end_date: str, lon_lat):
 
     # Coverage points
     multipoint = ee.Geometry.MultiPoint(lon_lat)
-    coverage = multipoint.buffer(20000)
+    coverage = multipoint.buffer(circle_radius)
     # mean_ndvi_clipped = mean_ndvi.clip(coverage)
     infrared_clipped = dataset.mean().clip(coverage)
     # Map.add_ee_layer(mean_ndvi_clipped, ndvi_vis, "NDVI")
@@ -520,6 +520,10 @@ def eci_to_llh_nsw(r_eci, t_eci, epoch, num_points):
     filtered_lon_lat = [point for point in lon_lat 
                         if nsw_bounds["lat_min"] <= point[1] <= nsw_bounds["lat_max"] 
                         and nsw_bounds["lon_min"] <= point[0] <= nsw_bounds["lon_max"]]
+    
+    # When extra points are not needed for visualisation
+    if(num_points == 0):
+        return filtered_lon_lat
 
 
     # Adding interpolated points between consecutive points
