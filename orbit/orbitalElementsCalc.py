@@ -35,8 +35,6 @@ def minimumAltitudeTest(swathe_width, alpha):
     Outputs: altitude (float) = Minimum altitude the satellite can be placed at
     '''
     altitude = (swathe_width * 10000/90)/alpha
-    print(altitude)
-    print(const.R_EARTH)
     return altitude + const.R_EARTH
 
 
