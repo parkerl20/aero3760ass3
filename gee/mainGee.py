@@ -36,8 +36,8 @@ def mainGee(results):
     # functions.show_map("NSW Infrared")
     # functions.show_map("Fires")
     # functions.show_map("NDVI")
-    # functions.show_map("S2A coverage")
-    functions.show_map("Red")
+    functions.show_map("S2A coverage")
+    # functions.show_map("Red")
 
 
 if __name__ == "__main__":
