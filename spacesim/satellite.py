@@ -267,19 +267,7 @@ class RealTimeSatellite(orb.Orbit):
                         time,
                         self,
                         sensor_measurements
-                    )
-                    np.set_printoptions(linewidth=1000, threshold=np.inf, precision=3)
-                    # Test
-                    # print(f"Algorithm: {algorithm.name}")
-                    # print(f"Time: {time:.3f} s")
-                    # print(f"State: {algorithm.algorithm.get_state().flatten()}")
-                    
-                    # pos_residual = r[:,i].flatten() - algorithm.algorithm.get_state()[:3].flatten()
-                    # vel_residual = v[:,i].flatten() - algorithm.algorithm.get_state()[3:].flatten()
-                    
-                    # print(f"Position residual: {pos_residual.flatten()} m")
-                    # print(f"Velocity residual: {vel_residual.flatten()} m/s")
-                    
+                    )                    
                     
         self.current_r_eci = r[:, -1].flatten()
         self.current_v_eci = v[:, -1].flatten()

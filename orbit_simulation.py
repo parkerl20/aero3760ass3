@@ -1,11 +1,3 @@
-import sys
-import os
-
-current_file_path = os.path.abspath(__file__)
-parent_directory = os.path.dirname(current_file_path)
-grandparent_directory = os.path.dirname(parent_directory)
-sys.path.append(grandparent_directory)
-
 from spacesim import estimation as est
 from spacesim import satellite as sat
 from spacesim import celestial_body as cb
@@ -16,10 +8,18 @@ from spacesim import util
 
 import numpy as np
 import matplotlib.pyplot as plt
+import datetime as dt
+import util as ut
 
-def od_simulation(
+def orbit_simulation(
     propagation_time: float,
-    satellite: sat.RealTimeSatellite,
+    a: float,
+    e: float,
+    i: float,
+    RAAN: float,
+    arg_p: float,
+    true_anom: float,
+    epoch: dt.datetime
 ) -> None:
     """Performs orbit determination simulation for a satellite
 
@@ -27,7 +27,25 @@ def od_simulation(
         satellite (sat.RealTimeSatellite): The satellite to perform
             orbit determination on
     """
+    # ----- set up
     np.random.seed(32)
+    propagation_length = 20
+    
+    satellite = sat.RealTimeSatellite(
+        a,
+        e,
+        i,
+        RAAN,
+        arg_p,
+        true_anom,
+        cb.earth,
+        epoch,
+        name="Satellite 1",
+        propagation_length=propagation_length,
+        propagation_step=propagation_length
+    )
+    
+    
     # ---------------- Mount sensors to satellite
     # Simulates Rakon GNSS reciever DB
     gnss_position_noise = 0.7 * np.ones(3,)
@@ -102,73 +120,80 @@ def od_simulation(
         
         time_steps.append(t)
     
-    r_residuals_log = np.array(satellite.algorithms["OD EKF"].logger.get_log("r_residual")).T
-    v_residuals_log = np.array(satellite.algorithms["OD EKF"].logger.get_log("v_residual")).T
+    create_od_results(
+        r_residuals,
+        v_residuals,
+        np.array(satellite.algorithms["OD EKF"].logger.get_log("r_residual")).T,
+        time_steps
+    )
+    
+    # r_residuals_log = np.array(satellite.algorithms["OD EKF"].logger.get_log("r_residual")).T
+    # v_residuals_log = np.array(satellite.algorithms["OD EKF"].logger.get_log("v_residual")).T
     
     # Plot the residuals
-    rx_fig, rx_ax = plt.subplots()
+    # rx_fig, rx_ax = plt.subplots()
     
-    rx_ax.plot(time_steps, r_residuals[0])
-    print(f"x - mean: {np.mean(r_residuals_log[0])}\tstd: {np.std(r_residuals_log[0])}")
-    print(f"y - mean: {np.mean(r_residuals_log[1])}\tstd: {np.std(r_residuals_log[1])}")
-    print(f"z - mean: {np.mean(r_residuals_log[2])}\tstd: {np.std(r_residuals_log[2])}")
+    # rx_ax.plot(time_steps, r_residuals[0])
+    # print(f"x - mean: {np.mean(r_residuals_log[0])}\tstd: {np.std(r_residuals_log[0])}")
+    # print(f"y - mean: {np.mean(r_residuals_log[1])}\tstd: {np.std(r_residuals_log[1])}")
+    # print(f"z - mean: {np.mean(r_residuals_log[2])}\tstd: {np.std(r_residuals_log[2])}")
     
-    rx_ax.set_title("Residuals in x")
-    rx_ax.set_xlabel("Time (s)")
-    rx_ax.set_ylabel("Residual (m)")
-    rx_ax.grid()
+    # rx_ax.set_title("Residuals in x")
+    # rx_ax.set_xlabel("Time (s)")
+    # rx_ax.set_ylabel("Residual (m)")
+    # rx_ax.grid()
     
-    rx_fig.tight_layout()
+    # rx_fig.tight_layout()
     
-    ry_fig, ry_ax = plt.subplots()
+    # ry_fig, ry_ax = plt.subplots()
     
-    ry_ax.plot(time_steps, r_residuals[1])
+    # ry_ax.plot(time_steps, r_residuals[1])
     
-    ry_ax.set_title("Residuals in y")
-    ry_ax.set_xlabel("Time (s)")
-    ry_ax.set_ylabel("Residual (m)")
-    ry_ax.grid()
+    # ry_ax.set_title("Residuals in y")
+    # ry_ax.set_xlabel("Time (s)")
+    # ry_ax.set_ylabel("Residual (m)")
+    # ry_ax.grid()
     
-    ry_fig.tight_layout()
+    # ry_fig.tight_layout()
     
-    rz_fig, rz_ax = plt.subplots()
+    # rz_fig, rz_ax = plt.subplots()
     
-    rz_ax.plot(time_steps, r_residuals[2])
+    # rz_ax.plot(time_steps, r_residuals[2])
     
-    rz_ax.set_title("Residuals in z")
-    rz_ax.set_xlabel("Time (s)")
-    rz_ax.set_ylabel("Residual (m)")
-    rz_ax.grid()
+    # rz_ax.set_title("Residuals in z")
+    # rz_ax.set_xlabel("Time (s)")
+    # rz_ax.set_ylabel("Residual (m)")
+    # rz_ax.grid()
     
-    rz_fig.tight_layout()
+    # rz_fig.tight_layout()
     
-    v_fig, v_ax = plt.subplots()
+    # v_fig, v_ax = plt.subplots()
     
-    v_ax.plot(time_steps, v_residuals[0], label="x")
-    v_ax.plot(time_steps, v_residuals[1], label="y")
-    v_ax.plot(time_steps, v_residuals[2], label="z")
+    # v_ax.plot(time_steps, v_residuals[0], label="x")
+    # v_ax.plot(time_steps, v_residuals[1], label="y")
+    # v_ax.plot(time_steps, v_residuals[2], label="z")
     
-    v_ax.set_title("Residuals in velocity")
-    v_ax.set_xlabel("Time (s)")
-    v_ax.set_ylabel("Residual (m/s)")
-    v_ax.grid()
-    v_ax.legend()
+    # v_ax.set_title("Residuals in velocity")
+    # v_ax.set_xlabel("Time (s)")
+    # v_ax.set_ylabel("Residual (m/s)")
+    # v_ax.grid()
+    # v_ax.legend()
     
-    v_fig.tight_layout()
+    # v_fig.tight_layout()
     
-    # Plot the innovation
-    i_fig, i_ax = plt.subplots()
+    # # Plot the innovation
+    # i_fig, i_ax = plt.subplots()
 
-    i_ax.plot(time_steps, innovation_mag)
+    # i_ax.plot(time_steps, innovation_mag)
     
-    i_ax.set_title("Innovation Magnitude")
-    i_ax.set_xlabel("Time (s)")
-    i_ax.set_ylabel("Innovation (m)")
-    i_ax.grid()
+    # i_ax.set_title("Innovation Magnitude")
+    # i_ax.set_xlabel("Time (s)")
+    # i_ax.set_ylabel("Innovation (m)")
+    # i_ax.grid()
     
-    i_fig.tight_layout()
+    # i_fig.tight_layout()
     
-    plt.show()   
+    # plt.show()   
     return
 
 
@@ -296,7 +321,7 @@ def EKF_algo_function(
     """Simulates an Extended Kalman Filter algorithm
     on a satellite in that acts on sensor data.
     
-    The Extended Kalman Filter algorithm function for
+    The Extneded Kalman Filter algorithm function for
     orbit determination recieves data from the IMU and GNSS
     reciever sensors.
     """
@@ -318,9 +343,6 @@ def EKF_algo_function(
             measured_state = np.concatenate((predicted_r, predicted_v)).reshape(6, 1)
             imu_H = np.eye(6)
             # imu_H = np.array([
-            #     [1, 0, 0, 0, 0, 0],  
-            #     [0, 1, 0, 0, 0, 0],  
-            #     [0, 0, 1, 0, 0, 0],
             #     [0, 0, 0, 1, 0, 0],
             #     [0, 0, 0, 0, 1, 0],
             #     [0, 0, 0, 0, 0, 1]
@@ -384,4 +406,68 @@ def log_EKF_algo(
     logger.get_log("r_residual").append(r - r_true)
     logger.get_log("v_residual").append(v - v_true)
     
+    return
+
+def create_od_results(
+    r_residuals: list[list[float]],
+    v_residuals: list[list[float]],
+    r_log: np.ndarray,
+    time_steps: list[float]
+) -> None:
+    """Creates plots for the residuals in position and velocity
+    """
+    ut.startup_plotting()
+    
+    # Plot the residuals
+    rx_fig, rx_ax = plt.subplots()
+    
+    rx_ax.plot(time_steps, r_residuals[0])
+    print(f"x - mean: {np.mean(r_log[0])}\tstd: {np.std(r_log[0])}")
+    print(f"y - mean: {np.mean(r_log[1])}\tstd: {np.std(r_log[1])}")
+    print(f"z - mean: {np.mean(r_log[2])}\tstd: {np.std(r_log[2])}")
+    
+    rx_ax.set_title("Residuals in x")
+    rx_ax.set_xlabel("Time (s)")
+    rx_ax.set_ylabel("Residual (m)")
+    rx_ax.grid()
+    
+    rx_fig.tight_layout()
+    
+    ry_fig, ry_ax = plt.subplots()
+    
+    ry_ax.plot(time_steps, r_residuals[1])
+    
+    ry_ax.set_title("Residuals in y")
+    ry_ax.set_xlabel("Time (s)")
+    ry_ax.set_ylabel("Residual (m)")
+    ry_ax.grid()
+    
+    ry_fig.tight_layout()
+    
+    rz_fig, rz_ax = plt.subplots()
+    
+    rz_ax.plot(time_steps, r_residuals[2])
+    
+    rz_ax.set_title("Residuals in z")
+    rz_ax.set_xlabel("Time (s)")
+    rz_ax.set_ylabel("Residual (m)")
+    rz_ax.grid()
+    
+    rz_fig.tight_layout()
+    
+    v_fig, v_ax = plt.subplots()
+    
+    v_ax.plot(time_steps, v_residuals[0], label="x")
+    v_ax.plot(time_steps, v_residuals[1], label="y")
+    v_ax.plot(time_steps, v_residuals[2], label="z")
+    
+    v_ax.set_title("Residuals in velocity")
+    v_ax.set_xlabel("Time (s)")
+    v_ax.set_ylabel("Residual (m/s)")
+    v_ax.grid()
+    v_ax.legend()
+    
+    v_fig.tight_layout()
+    
+    plt.show() 
     return
