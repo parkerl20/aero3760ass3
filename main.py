@@ -12,7 +12,7 @@ import datetime as dt
 
 def main():
     # Runs the main orbit code with results being r, v, t of the 4 satellites
-    results = mainOrbit(show_results=1)
+    results = mainOrbit(show_results=0)
     
     # ---------------- Orbit determination setup
     # First three position vectors, used for IOD

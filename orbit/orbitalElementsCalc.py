@@ -54,8 +54,7 @@ def minimumAltitude(swathe_width):
     FOV = beta * n               # Total FOV
 
     # Minimum altitude required to meet coverage requirements
-    min_altitude = (R_E * (np.sin(0.5*(lambda_max+FOV)) - np.sin(FOV/2)) / np.sin(FOV/2))
-    print(min_altitude)
+    min_altitude = (R_E * (np.sin(0.5*(lambda_max+FOV)) - np.sin(FOV/2)) / np.sin(FOV/2))/1000
     return min_altitude + R_E
 
 
@@ -171,8 +170,7 @@ def choosingRepeatEccentricity(a_min, i, j, k, show_results):
         # Semi-major 
         a = repeatingGroundTrackAltitude(j, k, i, e)
 
-        # Semi-minor
-        b = ((a**2 * (1 - e**2))**(1/2) - const.R_EARTH)/1000
+        # Radius at perigee
         rp = (a * (1 - e) - const.R_EARTH)/1000
 
         # Append arrays for plotting
@@ -195,8 +193,8 @@ def choosingRepeatEccentricity(a_min, i, j, k, show_results):
 
     # # Add labels and title
     ax.set_xlabel('Eccentricity of orbit (degrees)')
-    ax.set_ylabel('Altitude (km)')
-    ax.set_title('Altitude vs. Eccentricity of the orbit')
+    ax.set_ylabel('Radius at Perigee (km)')
+    ax.set_title('Radius at Perigee vs. Eccentricity of the orbit')
     
     # # Add a grid for better readability
     ax.grid(True, linestyle='--', alpha=0.7)
