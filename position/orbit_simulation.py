@@ -1,3 +1,11 @@
+import sys
+import os
+
+current_file_path = os.path.abspath(__file__)
+parent_directory = os.path.dirname(current_file_path)
+grandparent_directory = os.path.dirname(parent_directory)
+sys.path.append(grandparent_directory)
+
 from spacesim import estimation as est
 from spacesim import satellite as sat
 from spacesim import celestial_body as cb
@@ -9,7 +17,7 @@ from spacesim import util
 import numpy as np
 import matplotlib.pyplot as plt
 import datetime as dt
-import util as ut
+from .util import startup_plotting
 
 def orbit_simulation(
     propagation_time: float,
@@ -29,7 +37,7 @@ def orbit_simulation(
     """
     # ----- set up
     np.random.seed(32)
-    propagation_length = 20
+    propagation_length = 10
     
     satellite = sat.RealTimeSatellite(
         a,
@@ -87,10 +95,7 @@ def orbit_simulation(
     # Simulate the satellite
     r_residuals = [[], [], []]
     v_residuals = [[], [], []]
-    time_steps = []
-    
-    innovation_mag = []
-    
+    time_steps = []    
     
     for r_true, v_true, t in satellite:
         if t > propagation_time:
@@ -126,108 +131,9 @@ def orbit_simulation(
         np.array(satellite.algorithms["OD EKF"].logger.get_log("r_residual")).T,
         time_steps
     )
-    
-    # r_residuals_log = np.array(satellite.algorithms["OD EKF"].logger.get_log("r_residual")).T
-    # v_residuals_log = np.array(satellite.algorithms["OD EKF"].logger.get_log("v_residual")).T
-    
-    # Plot the residuals
-    # rx_fig, rx_ax = plt.subplots()
-    
-    # rx_ax.plot(time_steps, r_residuals[0])
-    # print(f"x - mean: {np.mean(r_residuals_log[0])}\tstd: {np.std(r_residuals_log[0])}")
-    # print(f"y - mean: {np.mean(r_residuals_log[1])}\tstd: {np.std(r_residuals_log[1])}")
-    # print(f"z - mean: {np.mean(r_residuals_log[2])}\tstd: {np.std(r_residuals_log[2])}")
-    
-    # rx_ax.set_title("Residuals in x")
-    # rx_ax.set_xlabel("Time (s)")
-    # rx_ax.set_ylabel("Residual (m)")
-    # rx_ax.grid()
-    
-    # rx_fig.tight_layout()
-    
-    # ry_fig, ry_ax = plt.subplots()
-    
-    # ry_ax.plot(time_steps, r_residuals[1])
-    
-    # ry_ax.set_title("Residuals in y")
-    # ry_ax.set_xlabel("Time (s)")
-    # ry_ax.set_ylabel("Residual (m)")
-    # ry_ax.grid()
-    
-    # ry_fig.tight_layout()
-    
-    # rz_fig, rz_ax = plt.subplots()
-    
-    # rz_ax.plot(time_steps, r_residuals[2])
-    
-    # rz_ax.set_title("Residuals in z")
-    # rz_ax.set_xlabel("Time (s)")
-    # rz_ax.set_ylabel("Residual (m)")
-    # rz_ax.grid()
-    
-    # rz_fig.tight_layout()
-    
-    # v_fig, v_ax = plt.subplots()
-    
-    # v_ax.plot(time_steps, v_residuals[0], label="x")
-    # v_ax.plot(time_steps, v_residuals[1], label="y")
-    # v_ax.plot(time_steps, v_residuals[2], label="z")
-    
-    # v_ax.set_title("Residuals in velocity")
-    # v_ax.set_xlabel("Time (s)")
-    # v_ax.set_ylabel("Residual (m/s)")
-    # v_ax.grid()
-    # v_ax.legend()
-    
-    # v_fig.tight_layout()
-    
-    # # Plot the innovation
-    # i_fig, i_ax = plt.subplots()
 
-    # i_ax.plot(time_steps, innovation_mag)
-    
-    # i_ax.set_title("Innovation Magnitude")
-    # i_ax.set_xlabel("Time (s)")
-    # i_ax.set_ylabel("Innovation (m)")
-    # i_ax.grid()
-    
-    # i_fig.tight_layout()
-    
-    # plt.show()   
     return
 
-
-def imu_simulator(
-    imu: sensor.SatelliteSensor,
-    satellite: sat.RealTimeSatellite,
-    r: np.ndarray,
-    v: np.ndarray
-) -> bool:
-    # Use the two body equation
-    mu = satellite.body.gravitational_parameter
-    r_mag = np.linalg.norm(r)
-    
-    a = (-(mu / r_mag**3) * r).flatten()
-
-    # Add noise
-    a[0] += np.random.normal(
-        0,
-        imu.noise_std[0]
-    )
-    
-    a[1] += np.random.normal(
-        0,
-        imu.noise_std[1]
-    )
-    
-    a[2] += np.random.normal(
-        0,
-        imu.noise_std[2]
-    )
-    
-    imu.mesurement = a
-    return True
-    
 def gnss_reciever_simulator(
     gnss_reciever: sensor.SatelliteSensor,
     satellite: sat.RealTimeSatellite,
@@ -322,45 +228,13 @@ def EKF_algo_function(
     on a satellite in that acts on sensor data.
     
     The Extneded Kalman Filter algorithm function for
-    orbit determination recieves data from the IMU and GNSS
-    reciever sensors.
+    orbit determination recieves data from the GNSS
+    reciever sensor.
     """
-    imu = sensors.get("imu", None)
     gnss_reciever = sensors.get("gnss_reciever", None)
     
     dt = time - ekf.t_last
-    
-    # Velocity estimate from previous IMU measurement
-    if imu is not None:
-        if hasattr(EKF_algo_function, "last_imu"):
-            last_r = ekf.algorithm.get_state()[:3].flatten()
-            last_v = ekf.algorithm.get_state()[3:].flatten()
-            last_imu = EKF_algo_function.last_imu
-            
-            predicted_v = last_v + (last_imu * dt)
-            predicted_r = last_r + (last_v * dt) + (last_imu * (dt**2 / 2))
-
-            measured_state = np.concatenate((predicted_r, predicted_v)).reshape(6, 1)
-            imu_H = np.eye(6)
-            # imu_H = np.array([
-            #     [0, 0, 0, 1, 0, 0],
-            #     [0, 0, 0, 0, 1, 0],
-            #     [0, 0, 0, 0, 0, 1]
-            # ])
-            
-            imu_pos_noise = imu.noise_std
-            imu_vel_noise = imu.noise_std
-            imu_noise = np.concatenate((imu_pos_noise, imu_vel_noise))
-            
-            ekf.algorithm.update(
-                measured_state,
-                imu_H,
-                np.diag(imu_noise**2),
-                f_args=(ekf.algorithm.get_state()[:3], dt)
-            )
-        
-        EKF_algo_function.last_imu = imu.get_measurement()
-    
+      
     if gnss_reciever is not None:
         measured_state = gnss_reciever.get_measurement().reshape(6, 1)
         gnss_H = np.eye(6)
@@ -416,58 +290,59 @@ def create_od_results(
 ) -> None:
     """Creates plots for the residuals in position and velocity
     """
-    ut.startup_plotting()
-    
-    # Plot the residuals
-    rx_fig, rx_ax = plt.subplots()
-    
-    rx_ax.plot(time_steps, r_residuals[0])
+    startup_plotting()
     print(f"x - mean: {np.mean(r_log[0])}\tstd: {np.std(r_log[0])}")
     print(f"y - mean: {np.mean(r_log[1])}\tstd: {np.std(r_log[1])}")
     print(f"z - mean: {np.mean(r_log[2])}\tstd: {np.std(r_log[2])}")
     
-    rx_ax.set_title("Residuals in x")
-    rx_ax.set_xlabel("Time (s)")
-    rx_ax.set_ylabel("Residual (m)")
-    rx_ax.grid()
+    # Plot the residuals
+    r_fig, r_ax = plt.subplots()
     
-    rx_fig.tight_layout()
+    r_ax.plot(time_steps, r_residuals[0], label="x")
+    r_ax.plot(time_steps, r_residuals[1], label="y")
+    r_ax.plot(time_steps, r_residuals[2], label="z")
     
-    ry_fig, ry_ax = plt.subplots()
+    r_ax.set_title("Residuals in position")
+    r_ax.set_xlabel("Time (s)")
+    r_ax.set_ylabel("Residual (m)")
     
-    ry_ax.plot(time_steps, r_residuals[1])
+    r_ax.legend()
+    r_fig.tight_layout()
     
-    ry_ax.set_title("Residuals in y")
-    ry_ax.set_xlabel("Time (s)")
-    ry_ax.set_ylabel("Residual (m)")
-    ry_ax.grid()
+    r_fig.savefig("4-Plots/od_r_residuals.png")
     
-    ry_fig.tight_layout()
+    # r_ax.plot(time_steps, r_residuals[0])
     
-    rz_fig, rz_ax = plt.subplots()
     
-    rz_ax.plot(time_steps, r_residuals[2])
+    # rx_ax.set_title("Residuals in x")
+    # rx_ax.set_xlabel("Time (s)")
+    # rx_ax.set_ylabel("Residual (m)")
     
-    rz_ax.set_title("Residuals in z")
-    rz_ax.set_xlabel("Time (s)")
-    rz_ax.set_ylabel("Residual (m)")
-    rz_ax.grid()
+    # rx_fig.tight_layout()
     
-    rz_fig.tight_layout()
+    # rx_fig.savefig("4-Plots/od_rx_residuals.png")
     
-    v_fig, v_ax = plt.subplots()
+    # ry_fig, ry_ax = plt.subplots()
     
-    v_ax.plot(time_steps, v_residuals[0], label="x")
-    v_ax.plot(time_steps, v_residuals[1], label="y")
-    v_ax.plot(time_steps, v_residuals[2], label="z")
+    # ry_ax.plot(time_steps, r_residuals[1])
     
-    v_ax.set_title("Residuals in velocity")
-    v_ax.set_xlabel("Time (s)")
-    v_ax.set_ylabel("Residual (m/s)")
-    v_ax.grid()
-    v_ax.legend()
+    # ry_ax.set_title("Residuals in y")
+    # ry_ax.set_xlabel("Time (s)")
+    # ry_ax.set_ylabel("Residual (m)")
     
-    v_fig.tight_layout()
+    # ry_fig.tight_layout()
+    # ry_fig.savefig("4-Plots/od_ry_residuals.png")
+    
+    # rz_fig, rz_ax = plt.subplots()
+    
+    # rz_ax.plot(time_steps, r_residuals[2])
+    
+    # rz_ax.set_title("Residuals in z")
+    # rz_ax.set_xlabel("Time (s)")
+    # rz_ax.set_ylabel("Residual (m)")
+    
+    # rz_fig.tight_layout()
+    # rz_fig.savefig("4-Plots/od_rz_residuals.png")
     
     plt.show() 
     return
