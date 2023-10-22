@@ -20,27 +20,24 @@ def mainGee(results):
 
     # Sentinel-2A satellite
     # Map = functions.S2A("2019-12-01", "2020-01-31")
-    # Map = functions.surface_temperature()
     # Map = functions.fires()
     # Map = functions.S2A_NDVI("2019-12-01", "2020-01-31")
-    Map = functions.S2A_coverage("2019-12-01", "2020-01-31", lon_lat, circle_radius=345088)
-    # Map = functions.plot_red_points(lon_lat, circle_radius=1000)
+    Map = functions.S2A_coverage("2019-12-01", "2020-01-31", lon_lat, circle_radius=345088) # Radius corresponding to a 6.2 degree swathe width
+    # Map = functions.plot_red_points(lon_lat, circle_radius=10)
 
     # Create map
     # functions.create_map(Map, "NSW Infrared")
-    # functions.create_map(Map, "Surface temperature")
     # functions.create_map(Map, "Fires")
     # functions.create_map(Map, "NDVI")
-    functions.create_map(Map, "S2A coverage")
-    # functions.create_map(Map, "Red")
+    functions.create_map(Map, "S2A Coverage")
+    # functions.create_map(Map, "10m resolution")
 
     # Show map
     # functions.show_map("NSW Infrared")
-    # functions.show_map("Surface temperature")
     # functions.show_map("Fires")
     # functions.show_map("NDVI")
-    functions.show_map("S2A coverage")
-    # functions.show_map("Red")
+    functions.show_map("S2A Coverage")
+    # functions.show_map("10m resolution")
 
 
 if __name__ == "__main__":

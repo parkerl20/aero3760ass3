@@ -29,10 +29,7 @@ def mainOrbit(show_results):
    SINGLE_DAY = 1            # Orbit repeats every 1 day
 
    # Minimum altitude of satelltie to meet swathe_width requirement
-   # a_min = minimumAltitude(SWATHE_WIDTH)
-   # print(a_min)
-   a_min = minimumAltitudeTest(SWATHE_WIDTH, alpha=2.4)
-   # print(a_min)
+   a_min = minimumAltitude(SWATHE_WIDTH)
 
    # Altitude for a repeating ground track orbit based on j: orbital periods and k:number of days
    orbits_per_day = [13, 14, 15, 16]
