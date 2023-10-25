@@ -6,7 +6,7 @@ easily, like ECI data from orbitt getting sent to gee to plot swathe width
 from spacesim import orbital_transforms as ot
 from spacesim import constants as const
 from orbit.mainOrbit import mainOrbit
-from position.orbit_simulation import orbit_simulation
+from orbit_simulation import orbit_simulation
 from gee.mainGee import mainGee
 import datetime as dt
 

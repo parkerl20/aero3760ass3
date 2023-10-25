@@ -1,11 +1,3 @@
-import sys
-import os
-
-current_file_path = os.path.abspath(__file__)
-parent_directory = os.path.dirname(current_file_path)
-grandparent_directory = os.path.dirname(parent_directory)
-sys.path.append(grandparent_directory)
-
 from spacesim import estimation as est
 from spacesim import satellite as sat
 from spacesim import celestial_body as cb
@@ -17,7 +9,7 @@ from spacesim import util
 import numpy as np
 import matplotlib.pyplot as plt
 import datetime as dt
-from .util import startup_plotting
+from util import startup_plotting
 
 def orbit_simulation(
     propagation_time: float,
@@ -37,7 +29,7 @@ def orbit_simulation(
     """
     # ----- set up
     np.random.seed(32)
-    propagation_length = 10
+    propagation_length = 20
     
     satellite = sat.RealTimeSatellite(
         a,
@@ -52,6 +44,8 @@ def orbit_simulation(
         propagation_length=propagation_length,
         propagation_step=propagation_length
     )
+    
+    propagation_time = satellite.period
     
     
     # ---------------- Mount sensors to satellite
@@ -99,6 +93,12 @@ def orbit_simulation(
     time_steps = []    
     gnss_times = []
     
+    import csv
+    csv_file = open("satellite_position.csv", "w", newline="")
+    csv_writer = csv.writer(csv_file)
+    
+    csv_writer.writerow(["time", "x", "y", "z"])
+    
     for r_true, v_true, t in satellite:
         if t > propagation_time:
             break
@@ -117,6 +117,9 @@ def orbit_simulation(
         ekf_r = ekf_state[:3].flatten()
         ekf_v = ekf_state[3:].flatten()
         
+        x, y, z = ekf_r
+        csv_writer.writerow([t, x, y, z])
+        
         r_residuals[0].append(r_true[0] - ekf_r[0])
         r_residuals[1].append(r_true[1] - ekf_r[1])
         r_residuals[2].append(r_true[2] - ekf_r[2])
@@ -125,10 +128,9 @@ def orbit_simulation(
         v_residuals[1].append(v_true[1] - ekf_v[1])
         v_residuals[2].append(v_true[2] - ekf_v[2])
         
-        # Raw gps measurements
-        
         time_steps.append(t)
     
+    csv_file.close()
     # raw_r = 
     create_od_results(
         r_residuals,
