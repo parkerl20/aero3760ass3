@@ -3,6 +3,7 @@ import os
 import webbrowser
 import geemap
 import csv
+from spacesim import orbital_transforms as ot
 
 def initialise_credentials():
     # Initialise credentials
@@ -171,6 +172,50 @@ def S2A_NDVI(start_date: str, end_date: str):
     return Map
 
 
+def S2A_coverage(start_date: str, end_date: str, lon_lat, circle_radius):
+   # Sentinel-2A satellite
+    dataset = (
+        ee.ImageCollection('COPERNICUS/S2_SR')
+        .filterDate(start_date, end_date)
+        # Pre-filter to get less cloudy granules.
+        .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
+        .map(mask_s2_clouds)
+        .map(calculate_ndvi) # Calculates the NDVI index
+    )
+
+    # Selecting NDVI
+    mean_ndvi = dataset.mean().select('NDVI')
+
+    # Visualisation parameter
+    ndvi_vis = {
+        'min': -1,
+        'max': 1,
+        'palette': ['blue', 'white', 'green']
+    }
+
+    # Red for alternate plotting
+    infrared_vis = {
+        'min': 0.0,
+        'max': 0.3,
+        'bands': ['B8', 'B4', 'B3']
+    }
+
+    # Map initialisation
+    Map = geemap.Map() 
+    Map.set_center(146.9211, -31.2532, 6) # Center of nsw
+
+    # Coverage points
+    multipoint = ee.Geometry.MultiPoint(lon_lat)
+    # point = ee.Geometry.Point(lon_lat[6]) # Point near sydney
+    # coverage = point.buffer(circle_radius)
+    coverage = multipoint.buffer(circle_radius)
+    # mean_ndvi_clipped = mean_ndvi.clip(coverage)
+    infrared_clipped = dataset.mean().clip(coverage)
+    # Map.add_ee_layer(mean_ndvi_clipped, ndvi_vis, "NDVI")
+    Map.add_ee_layer(infrared_clipped, infrared_vis, "Coverage")
+
+    return Map
+
 def elevation_5m():
     # Get the geometry of New South Wales
     nsw = ee.FeatureCollection("FAO/GAUL/2015/level1").filter(
@@ -196,6 +241,31 @@ def elevation_5m():
     Map.addLayer(elevation, elevation_visualization, 'Elevation')
 
     return Map
+
+
+
+def plot_red_points(lon_lat, circle_radius):
+    # Red color visualization
+    red_vis = {
+        'palette': ['red']
+    }
+    # Adding the opera house as a point
+    lon_lat.append([151.2153, -33.8568])
+    
+    # Create a MultiPoint geometry from the coordinates
+    multipoint = ee.Geometry.MultiPoint(lon_lat)
+    
+    # Paint the multipoint geometry on an image
+    buffered_multipoint = multipoint.buffer(circle_radius)  # Radius of circle
+    red_points_image = ee.Image().paint(buffered_multipoint, 0)
+
+    # Map initialization (empty map)
+    Map = geemap.Map()
+    Map.set_center(146.9211, -31.2532, 6)  # Center of NSW
+    Map.add_ee_layer(red_points_image, red_vis, 'Red Points')
+
+    return Map
+
 
 
 def surface_temperature():
@@ -381,3 +451,74 @@ def write_to_csv(data, filename, band):
         writer.writerow(["Location", band])  # Writing headers
         for location, value in data.items():
             writer.writerow([location, value])
+
+def eci_to_llh(r_eci, t_eci, epoch):
+    # 2D array for latitude longitude storage
+    lon_lat = [[0.0, 0.0] for i in range(len(t_eci))]
+
+    # Convert eci to lat long
+    for i in range(len(t_eci)):
+        r_ecef = ot.ECI_to_ECEF(r_eci[:, i], t_eci[i], epoch)
+        lat_i, lng_i, _ = ot.ECEF_to_LLH(r_ecef).flatten()
+        lon_lat[i] = [lng_i, lat_i]
+
+    return lon_lat
+
+
+def eci_to_llh_nsw(r_eci, t_eci, epoch, num_points):
+    # 2D array for latitude longitude storage
+    lon_lat = [[0.0, 0.0] for i in range(len(t_eci))]
+
+    # Convert eci to lat long
+    for i in range(len(t_eci)):
+        r_ecef = ot.ECI_to_ECEF(r_eci[:, i], t_eci[i], epoch)
+        lat_i, lng_i, _ = ot.ECEF_to_LLH(r_ecef).flatten()
+        lon_lat[i] = [lng_i, lat_i]
+
+    # Bounds of NSW
+    nsw_bounds = {
+        "lat_min": -37.4,
+        "lat_max": -28.6,
+        "lon_min": 141,
+        "lon_max": 156.64
+    }
+
+    # Only consider points in NSW
+    filtered_lon_lat = [point for point in lon_lat 
+                        if nsw_bounds["lat_min"] <= point[1] <= nsw_bounds["lat_max"] 
+                        and nsw_bounds["lon_min"] <= point[0] <= nsw_bounds["lon_max"]]
+    
+    # When extra points are not needed for visualisation
+    if(num_points == 0):
+        return filtered_lon_lat
+
+
+    # Adding interpolated points between consecutive points
+    smooth_lon_lat = []
+    for i in range(len(filtered_lon_lat) - 1):
+        smooth_lon_lat.append(filtered_lon_lat[i])
+        smooth_lon_lat.extend(interpolate_points(filtered_lon_lat[i], filtered_lon_lat[i+1], num_points)) 
+    if filtered_lon_lat:
+        smooth_lon_lat.append(filtered_lon_lat[-1])
+
+    return smooth_lon_lat
+
+
+
+def interpolate_points(A, B, num_points):
+    # Add in points between lon_lat for a smoother curve    
+    x1, y1 = A
+    x2, y2 = B
+    
+    # Delta
+    x_delta = (x2 - x1) / (num_points + 1)
+    y_delta = (y2 - y1) / (num_points + 1)
+    
+    # Generate interpolated points
+    interpolated_points = []
+    for i in range(1, num_points + 1):
+        new_x = x1 + i * x_delta
+        new_y = y1 + i * y_delta
+        interpolated_points.append((new_x, new_y))
+        
+    return interpolated_points

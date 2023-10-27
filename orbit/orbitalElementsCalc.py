@@ -25,7 +25,7 @@ def orbitalParamaters(lat, lon, swathe_width):
     return 0
 
 
-def minimumAltitude(swathe_width, alpha):
+def minimumAltitudeTest(swathe_width, alpha):
     '''
     minimumAltitude - Calculates the minimium altitude a satellite can be positioned at above ground while still 
                       covering the required swathe_width, based on the spatial resolution of the sensor
@@ -36,6 +36,26 @@ def minimumAltitude(swathe_width, alpha):
     '''
     altitude = (swathe_width * 10000/90)/alpha
     return altitude + const.R_EARTH
+
+
+def minimumAltitude(swathe_width):
+    '''
+    minimumAltitude - Calculates the minimium altitude a satellite can be positioned at above ground while still 
+                      covering the required swathe_width, based on the FOV of the camera
+    Inputs: swathe_width (float) = Degrees of latitude that the satellite must be able to observe
+
+    Outputs: min_altitude (float) = Minimum altitude the satellite can be placed at
+    '''
+    # Constants regarding camera sensor
+    n = 4                        # Number of cameras
+    R_E = const.R_EARTH                # Earth radius
+    lambda_max = np.deg2rad(swathe_width)   # Swath Width
+    beta = np.deg2rad(21.7)      # Camera FOV in degrees
+    FOV = beta * n               # Total FOV
+
+    # Minimum altitude required to meet coverage requirements
+    min_altitude = (R_E * (np.sin(0.5*(lambda_max+FOV)) - np.sin(FOV/2)) / np.sin(FOV/2))/1000
+    return min_altitude + R_E
 
 
 def repeatingGroundTrackAltitude(j, k, i, e):
@@ -79,7 +99,7 @@ def repeatingGroundTrackAltitude(j, k, i, e):
     return alt
 
 
-def choosingOrbitsPerDay(a_min, i, j, k):
+def choosingOrbitsPerDay(a_min, i, j, k, show_results):
     # Array to record each altitude 
     alt = []
 
@@ -125,12 +145,13 @@ def choosingOrbitsPerDay(a_min, i, j, k):
     ax.legend()
 
     # Display the plot
-    plt.show()
+    if(show_results):
+        plt.show()
 
     return j_final
 
 
-def choosingRepeatEccentricity(a_min, i, j, k):
+def choosingRepeatEccentricity(a_min, i, j, k, show_results):
     # Array to keep track of altitudes
     perigee_radius = []
 
@@ -149,8 +170,7 @@ def choosingRepeatEccentricity(a_min, i, j, k):
         # Semi-major 
         a = repeatingGroundTrackAltitude(j, k, i, e)
 
-        # Semi-minor
-        b = ((a**2 * (1 - e**2))**(1/2) - const.R_EARTH)/1000
+        # Radius at perigee
         rp = (a * (1 - e) - const.R_EARTH)/1000
 
         # Append arrays for plotting
@@ -173,8 +193,8 @@ def choosingRepeatEccentricity(a_min, i, j, k):
 
     # # Add labels and title
     ax.set_xlabel('Eccentricity of orbit (degrees)')
-    ax.set_ylabel('Altitude (km)')
-    ax.set_title('Altitude vs. Eccentricity of the orbit')
+    ax.set_ylabel('Radius at Perigee (km)')
+    ax.set_title('Radius at Perigee vs. Eccentricity of the orbit')
     
     # # Add a grid for better readability
     ax.grid(True, linestyle='--', alpha=0.7)
@@ -196,7 +216,8 @@ def choosingRepeatEccentricity(a_min, i, j, k):
     ax.legend()
 
     # # Display the plot
-    plt.show()
+    if(show_results):
+        plt.show()
 
     return e
 
