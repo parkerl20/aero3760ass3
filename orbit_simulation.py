@@ -321,12 +321,11 @@ def create_od_results(
     # r_fig.savefig("4-Plots/od_r_residuals.png")
     
     rx_fig, rx_ax = plt.subplots(3,1)
-    rx_ax.plot(time_steps, r_residuals[0])
-    
-    
-    rx_ax.set_title("Residuals in x")
-    rx_ax.set_xlabel("Time (s)")
-    rx_ax.set_ylabel("Residual (m)")
+    for i in range(3):
+        rx_ax[i].plot(time_steps, r_residuals[i])
+        rx_ax[i].set_title(f"Residuals in x{i+1}")
+        rx_ax[i].set_xlabel("Time (s)")
+        rx_ax[i].set_ylabel("Residual (m)")
     
     rx_fig.tight_layout()
     
