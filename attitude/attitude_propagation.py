@@ -22,9 +22,9 @@ def propagate_attitude(t, q0):
                   angle representation
     '''
 
-    p = 0.01
-    q = 0.01
-    r = 0.01
+    p = 0.0016
+    q = 0.0016
+    r = 0.0016
 
     q_matrix = 0.5 * np.array([
         [0, -p, -q, -r],
@@ -34,7 +34,7 @@ def propagate_attitude(t, q0):
     
     q_dot = 0.5 * q_matrix @ q0
 
-    print("Time:", t, "q:", q)
+    print("Time:", t, "q:", q0)
     
     return q_dot
 
@@ -77,7 +77,7 @@ def plot_attitude_propagation(time, eulers):
 def main():
 
     time_start = 0
-    one_period = 6000
+    one_period = 60000
 
     initial_euler = [10, 30, -45]
     initial_quat = attitude_transforms.euler2quat(initial_euler)
@@ -99,11 +99,7 @@ def main():
         eulers[i] = euler
         # eulers[i] = attitude_transforms.quat2euler(attitude.y[:, i])
 
-    
-
-    print(eulers)
     print("\n\n")
-
     plot_attitude_propagation(times, eulers)
 
     return 0
