@@ -1,5 +1,25 @@
 from . import functions
 import datetime as dt
+import ee
+import matplotlib.pyplot as plt
+
+def extract_roi(Map, lon_lat):
+    # Assuming Map is a data structure containing the map data and lon_lat is the region of interest
+    # Implement the extraction logic here based on the structure of your Map data
+    # Extract the region of interest using the provided lon_lat coordinates
+
+    # For example, if Map is a 2D array or an image, and lon_lat contains the coordinates of the region of interest
+    # Extract the region based on the lon_lat coordinates
+    # You may need to use some image processing techniques or slicing operations depending on the structure of Map
+
+    # Example of extracting a region from a 2D array using slicing
+    # Assuming lon_lat contains the coordinates of the region of interest in the format [x_start, x_end, y_start, y_end]
+    x_start, x_end, y_start, y_end = lon_lat
+    extracted_roi = Map[x_start:x_end, y_start:y_end]
+
+    # Return the extracted region
+    return extracted_roi
+
 
 def mainGee(results):
     """Currently running this code will take about 300 seconds, but will make a html map of nsw in the NDVI index,
@@ -27,6 +47,12 @@ def mainGee(results):
     Map = functions.S2A_coverage("2019-12-01", "2020-01-31", lon_lat, circle_radius=345088) # Radius corresponding to a 6.2 degree swathe width
     # Map = functions.plot_red_points(lon_lat, circle_radius=10)
 
+    # Define a region of interest using ee.Geometry.Rectangle
+    roi = ee.Geometry.Rectangle([[151.45, -33.74], [151.4, -34.8]])
+
+    # Add the region of interest to the map
+    Map.addLayer(roi, {}, 'ROI')
+
     # Create map
     # functions.create_map(Map, "NSW Infrared")
     # functions.create_map(Map, "Fires")
@@ -40,6 +66,7 @@ def mainGee(results):
     # functions.show_map("NDVI")
     functions.show_map("S2A coverage")
     # functions.show_map("Red")
+
 
 
 if __name__ == "__main__":
