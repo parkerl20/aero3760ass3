@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 from matplotlib.colors import ListedColormap
 
 def main_lat_lon():
-    with rasterio.open('/home/tpgrep/UNI/2023/SEM_2/AERO3760_SPACE_ENG/Assignments/Assignment_3/aero3760ass3/Data_Set_Accuracy/Images/Opera_house_test.tif') as src:
+    with rasterio.open('images/Opera_house_test.tif') as src:
         # Read the image as a numpy array
         img = src.read(1)  # Replace '1' with the band you want to visualize
 
@@ -33,7 +33,7 @@ def main_lat_lon():
 
         # Show the plot
         plt.show()
-        plt.savefig('Test.png')
+        plt.savefig('../figures/data_accuracy_plot.png')
 
 if __name__ == "__main__":
    main_lat_lon()

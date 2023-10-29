@@ -18,6 +18,8 @@ def mainGee(results):
     # lon_lat = functions.eci_to_llh(r_obv, t_obv, epoch)
     lon_lat = functions.eci_to_llh_nsw(r_obv, t_obv, epoch, num_points=100)
 
+    print("Length of lon_lat:", len(lon_lat))
+
     # Sentinel-2A satellite
     # Map = functions.S2A("2019-12-01", "2020-01-31")
     # Map = functions.fires()
