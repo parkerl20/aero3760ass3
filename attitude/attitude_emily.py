@@ -1,13 +1,50 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.spatial.transform import Rotation
-from pos_sun import *
+from stars_sun_pos import *
 
 '''
 NLLS for Attitude Determination
 '''
 
-  
+# from ECI 
+# get nadir  to lat long of earth
+# need to figure out rotation between body frame and vector to lat long of nadir
+# ECI 2 ECEF 2 ENU
+# TODO
+# integrate with position
+
+# point sensors in different directions - different stars?
+# account for sun going into dark - time of day
+# satellite needs always point nadir - how does this translate ??
+# scannign system
+# change attitude over time - to do with facing towards earth
+# weightings
+# for over time - use previous output as initial gues
+
+
+# yaw is perturbation
+# pitch change 
+# roll perturbation
+
+
+# read eci from csv
+pos_eci = np.loadtxt('satellite_position.csv', delimiter=',')    
+
+
+# convert to ecef
+# use ot object
+# convert to enu
+
+
+# 1/1/2023 is epoch
+
+
+
+
+
+
+
 def euler2quat(x):
     """
     Converts Euler angles to quaternion
@@ -234,6 +271,7 @@ def main():
 
     time = np.arange(1,10,1)
     final_estimates = np.zeros((len(time), 3))
+    iterations = []
     dops_time = np.zeros((len(time), 4))
     for t in time:
         num_stars = 5
@@ -293,6 +331,9 @@ def main():
         # needs to be in radians
         att_opt, dops, att_store, i, datts = nlls_quaternion_weights(observed_vectors, ref_vectors, att_init)
         final_estimates[t-1] = (quat2euler(att_opt))
+        iterations.append(i)
+        # next guess is final estimate
+        att_init = quat2euler(att_opt)
         dops_time[t-1] = dops
         print("DOP for quaternion params W X Y Z:", dops)
         # dops times vector error for actual mapping error
@@ -342,6 +383,13 @@ def main():
     plt.plot(range(len(dops_time)), dops_time[:,3], label = "Z")
     plt.legend()
     plt.ylabel("DOPs")
+    plt.xlabel("Time")
+    plt.show()
+
+    plt.figure()
+    plt.plot(range(len(iterations)), iterations, label = "iterations to converge")
+    plt.legend()
+    plt.ylabel("Iterations to Converge")
     plt.xlabel("Time")
     plt.show()
 
