@@ -207,13 +207,13 @@ def S2A_coverage(start_date: str, end_date: str, lon_lat, circle_radius):
     # Coverage points
     # multipoint = ee.Geometry.MultiPoint(lon_lat)
 
-    point = ee.Geometry.Point(lon_lat[6]) # Point near sydney
+    # point = ee.Geometry.Point(lon_lat[6]) # Point near sydney
     # coverage = point.buffer(circle_radius)
 
     # squares = [ee.Geometry.Point(coords).buffer(circle_radius).bounds() for coords in lon_lat]
     # coverage = ee.Geometry.MultiPolygon([square.coordinates() for square in squares])
 
-    squares = ee.Geometry.Point(lon_lat[6]).buffer(circle_radius).bounds()
+    squares = ee.Geometry.Point(lon_lat[500]).buffer(circle_radius).bounds()
     coverage = ee.Geometry.MultiPolygon([squares.coordinates()])
 
     # coverage = multipoint.buffer(circle_radius)
