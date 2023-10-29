@@ -1,3 +1,4 @@
+import math
 from spacesim import estimation as est
 from spacesim import satellite as sat
 from spacesim import celestial_body as cb
@@ -388,3 +389,77 @@ def star_tracker_simulator(
 ) -> bool:
     """Simulates the star tracker on a satellite"""
     pass
+
+def calculate_rms(
+    data: np.array
+) -> float:
+    """
+    Calculate the root mean square of a list of values.
+    """
+    n = len(data)
+    if n < 1:
+        raise ValueError("Input list must contain at least one element.")
+
+    sum_of_squares = sum(x ** 2 for x in data)
+    rms = math.sqrt(sum_of_squares / n)
+    return rms
+
+def mapping_budget(r_eci, r_true, v_true, euler_truths, euler_estimate):
+
+    delta_I, delta_C, delta_R = ot.ECI_to_mapping_error(r_eci, r_true, v_true)
+    delta_azimuth, delta_elevation = ot.ECI_to_azimuth_error(euler_truths, euler_estimate)
+
+
+    R_E = 6371  # km
+    H = 500    # km
+    R_T = R_E
+    R_S = R_E + H
+
+    elevation_deg = 60
+    elevation_rad = np.deg2rad(elevation_deg)
+
+    delta_phi_deg = 0.0005
+    delta_phi_rad = np.deg2rad(delta_phi_deg)
+
+    delta_eta_deg = 0.0005
+    delta_eta_rad = np.deg2rad(delta_eta_deg)
+
+    p_rad = np.arcsin(R_E/(R_E+H))
+    p_deg = np.rad2deg(p_rad)
+
+    eta_rad = np.arcsin(np.cos(elevation_rad) * np.sin(p_rad))
+    eta_deg = np.rad2deg(eta_rad)
+
+    lam_deg = 90 - elevation_deg - p_deg
+    lam_rad = np.deg2rad(lam_deg)
+
+    phi_deg = 30
+    phi_rad = np.deg2rad(phi_deg)
+
+    H_mapping = np.arcsin(np.sin(lam_rad)*np.sin(phi_rad))
+    G_mapping = np.arcsin(np.sin(lam_rad)*np.cos(phi_rad))
+ 
+    intrack_error = delta_I * R_T / R_S * np.cos(H_mapping)
+    crosstrack_error = delta_C * R_T / R_S * np.cos(G_mapping)
+    radial_error = delta_R * np.sin(eta_rad) / np.sin(elevation_rad)
+
+
+
+
+    division = 0.0451649 # for elevation 60 deg (worst case)
+
+    D = R_E * division
+
+    azimuth_error = delta_azimuth * D * np.sin(eta_rad)
+    nadir_error = delta_elevation * D / np.sin(elevation_rad)
+
+
+
+
+
+
+    data = [azimuth_error, nadir_error, intrack_error, crosstrack_error, radial_error]
+
+    rms = calculate_rms(data)
+
+    return rms

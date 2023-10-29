@@ -39,6 +39,8 @@ def mainGee(results):
     lon_lat = functions.eci_to_llh_nsw(r_obv, t_obv, epoch, num_points=100)
 
     print("Length of lon_lat:", len(lon_lat))
+    print("lon_lat:", lon_lat)
+    print("lon_lat[0], lon_lat[50]:", lon_lat[6], lon_lat[50])
 
     # Sentinel-2A satellite
     # Map = functions.S2A("2019-12-01", "2020-01-31")
@@ -46,12 +48,6 @@ def mainGee(results):
     # Map = functions.S2A_NDVI("2019-12-01", "2020-01-31")
     Map = functions.S2A_coverage("2019-12-01", "2020-01-31", lon_lat, circle_radius=345088) # Radius corresponding to a 6.2 degree swathe width
     # Map = functions.plot_red_points(lon_lat, circle_radius=10)
-
-    # Define a region of interest using ee.Geometry.Rectangle
-    roi = ee.Geometry.Rectangle([[151.45, -33.74], [151.4, -34.8]])
-
-    # Add the region of interest to the map
-    Map.addLayer(roi, {}, 'ROI')
 
     # Create map
     # functions.create_map(Map, "NSW Infrared")
