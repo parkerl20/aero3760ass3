@@ -63,8 +63,8 @@ def save_to_png(file_path):
 
         # Show the plot
         print("Plot saved!")
-        plt.show()
         plt.savefig('figures/sydney.png')
+        plt.show()
 
 
 def main():
