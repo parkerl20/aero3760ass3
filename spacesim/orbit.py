@@ -277,21 +277,24 @@ class Orbit():
         if coord_frame != "ECI" and coord_frame != "perifocal":
             raise ValueError(f'Invalid coordinate frame "{coord_frame}".')
         
-        if coord_frame == "ECI":
-            init_r, init_v = ot.elements_to_ECI(
-                self.semi_major_axis,
-                self.eccentricity,
-                self.inclination,
-                self.right_ascension,
-                self.argument_periapsis,
-                self.true_anomaly
-            )
-        elif coord_frame == "perifocal":
-            init_r, init_v = ot.elements_to_perifocal(
-                self.semi_major_axis,
-                self.eccentricity,
-                self.true_anomaly
-            )
+        # if coord_frame == "ECI":
+        #     init_r, init_v = ot.elements_to_ECI(
+        #         self.semi_major_axis,
+        #         self.eccentricity,
+        #         self.inclination,
+        #         self.right_ascension,
+        #         self.argument_periapsis,
+        #         self.true_anomaly
+        #     )
+        # elif coord_frame == "perifocal":
+        #     init_r, init_v = ot.elements_to_perifocal(
+        #         self.semi_major_axis,
+        #         self.eccentricity,
+        #         self.true_anomaly
+        #     )
+        
+        init_r = self.init_r_eci
+        init_v = self.init_v_eci
         
         y0 = np.concatenate((init_r, init_v)).flatten()
         t_span = [t_start, t]
