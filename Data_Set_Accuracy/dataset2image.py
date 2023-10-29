@@ -1,81 +1,55 @@
 import ee
 import os
 import requests
+import geemap
 
 from ee import batch
 from functions_dsa import initialise_credentials
+
+def export_image_to_tif_with_region(image, file_path, scale, lat, lon, band):
+    """
+    Export an image to a TIF file with a specified scale and region of interest using the geemap.ee_export_image() function.
+
+    Args:
+    image (ee.Image): The Earth Engine image to be exported.
+    file_path (str): The file path where the TIF file will be saved.
+    scale (int): The scale at which to export the image.
+    lat (float): Latitude coordinate of the region of interest.
+    lon (float): Longitude coordinate of the region of interest.
+    band (str): The band of the image to export.
+
+    Returns:
+    str: A message indicating the success or failure of the export process.
+    """
+    try:
+        roi = ee.Geometry.Point(lon, lat).buffer(200)  # Adjust buffer size as needed
+        image = image.select(band)
+        geemap.ee_export_image(image, filename=file_path, scale=scale, crs='EPSG:4326', region=roi)
+        return f"Image exported successfully to {file_path}"
+    except Exception as e:
+        return f"An error occurred: {e}"
+    
 
 def main_dataset2image():
     # Initialize Earth Engine
     initialise_credentials()
 
-    # Define the region of interest (AOI) as a geometry
-    aoi = ee.Geometry.Polygon(
-        [[[-122.5, 37.5],
-        [-122.0, 37.5],
-        [-122.0, 37.75],
-        [-122.5, 37.75]]])
+    # Load a Landsat 8 image collection and filter by date and location
+    collection = ee.ImageCollection('LANDSAT/LC08/C01/T1').filterDate('2022-01-01', '2022-01-31')
 
-    # Define the date range
-    start_date = '2021-01-01'
-    end_date = '2021-12-31'
+    # Select the first image in the filtered collection
+    image = collection.first()
 
-    # Load the Landsat 8 dataset for the specified time period and location
-    dataset = ee.ImageCollection('LANDSAT/LC08/C01/T1') \
-        .filterBounds(aoi) \
-        .filterDate(ee.Date(start_date), ee.Date(end_date)) \
-        .sort('CLOUD_COVER') \
-        .first()  # Get the image with the least cloud cover
+    # Specify the file path, scale, and region for export
+    file_path = 'Data_Set_Accuracy/images/image.tif'
+    scale = 30
+    lat = -33.674  # Example latitude
+    lon = 150.9151  # Example longitude
+    band = ['B4', 'B3', 'B2'] # Example band name
 
-    # Select the bands you want to export (e.g., Red, Green, Blue)
-    bands_to_export = ['B4', 'B3', 'B2']  # RGB bands
-
-    # Define export parameters
-    export_params = {
-        'image': dataset.select(bands_to_export),
-        'description': 'Landsat8_Image',
-        'scale': 30,  # Spatial resolution in meters per pixel
-        'region': aoi.getInfo()['coordinates'],
-        'crs': 'EPSG:4326',
-        'fileFormat': 'GeoTIFF'  # Export format (e.g., GeoTIFF)
-    }
-
-    # Initiate the export task
-    task = batch.Export.image.toDrive(**export_params)
-
-    task.start()
-
-    # Monitor the task status
-    print('Exporting...', task)
-
-    print(task.status())
-
-    # Optionally, wait for the task to complete
-    while task.active():
-        pass
-
-    # Check the task status
-    print('Task Status:', task.status())
-
-    # Get the download URL for the exported image
-    # After the task is completed, get the download URL from the assets
-
-    asset_id = task.status()['destination_uris'][0]
-    download_url = asset_id
-    
-    # Define the local output path for the downloaded image
-    output_path = 'Data_Set_Accuracy/images/Landsat8_Image.tif'
-
-    # Download the exported image from the URL
-    response = requests.get(download_url)
-    with open(output_path, 'wb') as f:
-        f.write(response.content)
-
-    # Check if the image was successfully downloaded
-    if os.path.exists(output_path):
-        print('Image downloaded successfully.')
-    else:
-        print('Image download failed.')
+    # Export the image
+    export_result = export_image_to_tif_with_region(image, file_path, scale, lat, lon, band)
+    print(export_result)
 
     return
 
