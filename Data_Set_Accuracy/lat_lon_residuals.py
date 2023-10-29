@@ -5,54 +5,35 @@ import functions_dsa
 
 from rasterio.plot import show
 from matplotlib import pyplot as plt
+from matplotlib.colors import ListedColormap
 
 def main_lat_lon():
-    
-    # Connect to GEE
-    functions_dsa.initialise_credentials()
-    
-    # Defines region of interest as a polygon (San francisco, switch)
-    roi = ee.Geometry.Polygon(
-      [[[-123.1205, 37.6173],
-        [-123.0760, 37.6173],
-        [-123.0760, 37.7125],
-        [-123.1205, 37.7125]]])
-    
-    # Choose dataset
-    dataset = ee.ImageCollection('LANDSAT/LC08/C01/T1')
+    with rasterio.open('/home/tpgrep/UNI/2023/SEM_2/AERO3760_SPACE_ENG/Assignments/Assignment_3/aero3760ass3/Data_Set_Accuracy/Images/Opera_house_test.tif') as src:
+        # Read the image as a numpy array
+        img = src.read(1)  # Replace '1' with the band you want to visualize
 
-    # Define the date range
-    start_date = '2022-01-01'
-    end_date = '2022-01-31'
+        # Get the spatial transform (geotransform)
+        transform = src.transform
 
-    # Filter the dataset by date and region
-    filtered_dataset = dataset.filterDate(start_date, end_date).filterBounds(roi)
+        # Get the spatial extent (bounding box)
+        extent = [transform[2], transform[2] + transform[0] * src.width,
+                transform[5] + transform[4] * src.height, transform[5]]
 
-    # Merge the images in the collection into a single image
-    merged_image = filtered_dataset.mosaic()
+        # Create a figure and plot the image
+        fig, ax = plt.subplots(figsize=(10, 10))
+        im = ax.imshow(img, extent=extent)
 
-    # Extract lat/lon data using reduceRegion
-    lat_lon_data = merged_image.reduceRegion(
-        reducer=ee.Reducer.mean(),
-        geometry=roi,
-        scale=30  # Resolution in meters
-    )
+        # Add a colorbar
+        cbar = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+        cbar.set_label('Value')
 
-    # Convert the lat/lon data to a Python dictionary
-    lat_lon_dict = lat_lon_data.getInfo()
+        # Set axis labels
+        ax.set_xlabel('Longitude')
+        ax.set_ylabel('Latitude')
 
-    # Extract lat/lon values
-    latitude = lat_lon_dict['latitude']
-    longitude = lat_lon_dict['longitude']
-
-    # Export lat/lon data to a CSV file
-    with open('lat_lon_data.csv', 'w', newline='') as csvfile:
-        fieldnames = ['Latitude', 'Longitude']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerow({'Latitude': latitude, 'Longitude': longitude})
-
-    return
+        # Show the plot
+        plt.show()
+        plt.savefig('Test.png')
 
 if __name__ == "__main__":
    main_lat_lon()
