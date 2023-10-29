@@ -320,39 +320,39 @@ def create_od_results(
     
     # r_fig.savefig("4-Plots/od_r_residuals.png")
     
-    rx_fig, rx_ax = plt.subplots(3,1)
-    rx_ax.plot(time_steps, r_residuals[0])
+    # rx_fig, rx_ax = plt.subplots(3,1)
+    # rx_ax.plot(time_steps, r_residuals[0])
     
     
-    rx_ax.set_title("Residuals in x")
-    rx_ax.set_xlabel("Time (s)")
-    rx_ax.set_ylabel("Residual (m)")
+    # rx_ax.set_title("Residuals in x")
+    # rx_ax.set_xlabel("Time (s)")
+    # rx_ax.set_ylabel("Residual (m)")
     
-    rx_fig.tight_layout()
+    # rx_fig.tight_layout()
     
-    rx_fig.savefig("4-Plots/od_rx_residuals.png")
+    # rx_fig.savefig("4-Plots/od_rx_residuals.png")
     
-    ry_fig, ry_ax = plt.subplots()
+    # ry_fig, ry_ax = plt.subplots()
     
-    ry_ax.plot(time_steps, r_residuals[1])
+    # ry_ax.plot(time_steps, r_residuals[1])
     
-    ry_ax.set_title("Residuals in y")
-    ry_ax.set_xlabel("Time (s)")
-    ry_ax.set_ylabel("Residual (m)")
+    # ry_ax.set_title("Residuals in y")
+    # ry_ax.set_xlabel("Time (s)")
+    # ry_ax.set_ylabel("Residual (m)")
     
-    ry_fig.tight_layout()
-    ry_fig.savefig("4-Plots/od_ry_residuals.png")
+    # ry_fig.tight_layout()
+    # ry_fig.savefig("4-Plots/od_ry_residuals.png")
     
-    rz_fig, rz_ax = plt.subplots()
+    # rz_fig, rz_ax = plt.subplots()
     
-    rz_ax.plot(time_steps, r_residuals[2])
+    # rz_ax.plot(time_steps, r_residuals[2])
     
-    rz_ax.set_title("Residuals in z")
-    rz_ax.set_xlabel("Time (s)")
-    rz_ax.set_ylabel("Residual (m)")
+    # rz_ax.set_title("Residuals in z")
+    # rz_ax.set_xlabel("Time (s)")
+    # rz_ax.set_ylabel("Residual (m)")
     
-    rz_fig.tight_layout()
-    rz_fig.savefig("4-Plots/od_rz_residuals.png")
+    # rz_fig.tight_layout()
+    # rz_fig.savefig("4-Plots/od_rz_residuals.png")
     
-    plt.show() 
+    # plt.show() 
     return
