@@ -5,6 +5,7 @@ from spacesim import sensor
 from spacesim import constants as const
 from spacesim import estimation as est
 from spacesim import util
+from spacesim import orbital_transforms as ot
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -93,11 +94,6 @@ def orbit_simulation(
     time_steps = []    
     gnss_times = []
     
-    import csv
-    csv_file = open("satellite_position.csv", "w", newline="")
-    csv_writer = csv.writer(csv_file)
-    
-    csv_writer.writerow(["time", "x", "y", "z"])
     
     for r_true, v_true, t in satellite:
         if t > propagation_time:
@@ -118,20 +114,27 @@ def orbit_simulation(
         ekf_v = ekf_state[3:].flatten()
         
         x, y, z = ekf_r
-        csv_writer.writerow([t, x, y, z])
         
-        r_residuals[0].append(r_true[0] - ekf_r[0])
-        r_residuals[1].append(r_true[1] - ekf_r[1])
-        r_residuals[2].append(r_true[2] - ekf_r[2])
+        # r_residuals[0].append(r_true[0] - ekf_r[0])
+        # r_residuals[1].append(r_true[1] - ekf_r[1])
+        # r_residuals[2].append(r_true[2] - ekf_r[2])
+        
+        in_track, cross_track, radial = ot.ECI_to_mapping_error(
+            ekf_r,
+            r_true,
+            v_true
+        )
+        
+        r_residuals[0].append(in_track)
+        r_residuals[1].append(cross_track)
+        r_residuals[2].append(radial)
         
         v_residuals[0].append(v_true[0] - ekf_v[0])
         v_residuals[1].append(v_true[1] - ekf_v[1])
         v_residuals[2].append(v_true[2] - ekf_v[2])
         
         time_steps.append(t)
-    
-    csv_file.close()
-    # raw_r = 
+     
     create_od_results(
         r_residuals,
         v_residuals,
@@ -305,54 +308,54 @@ def create_od_results(
     # Plot the residuals
     
     # Plot all on one graph
-    r_fig, r_ax = plt.subplots()
+    # r_fig, r_ax = plt.subplots()
     
-    r_ax.plot(time_steps, r_residuals[0], label="x")
-    r_ax.plot(time_steps, r_residuals[1], label="y")
-    r_ax.plot(time_steps, r_residuals[2], label="z")
+    # r_ax.plot(time_steps, r_residuals[0], label="x")
+    # r_ax.plot(time_steps, r_residuals[1], label="y")
+    # r_ax.plot(time_steps, r_residuals[2], label="z")
     
-    r_ax.set_title("Residuals in position")
-    r_ax.set_xlabel("Time (s)")
-    r_ax.set_ylabel("Residual (m)")
+    # r_ax.set_title("Residuals in position")
+    # r_ax.set_xlabel("Time (s)")
+    # r_ax.set_ylabel("Residual (m)")
     
-    r_ax.legend()
-    r_fig.tight_layout()
+    # r_ax.legend()
+    # r_fig.tight_layout()
     
-    r_fig.savefig("4-Plots/od_r_residuals.png")
+    # r_fig.savefig("4-Plots/od_r_residuals.png")
     
     rx_fig, rx_ax = plt.subplots()
     rx_ax.plot(time_steps, r_residuals[0])
     
     
-    rx_ax.set_title("Residuals in x")
+    rx_ax.set_title("EKF In-Track Error")
     rx_ax.set_xlabel("Time (s)")
     rx_ax.set_ylabel("Residual (m)")
     
     rx_fig.tight_layout()
     
-    rx_fig.savefig("4-Plots/od_rx_residuals.png")
+    rx_fig.savefig("figures/od_EKF_in_track.png")
     
     ry_fig, ry_ax = plt.subplots()
     
     ry_ax.plot(time_steps, r_residuals[1])
     
-    ry_ax.set_title("Residuals in y")
+    ry_ax.set_title("EKF Cross-Track Error")
     ry_ax.set_xlabel("Time (s)")
     ry_ax.set_ylabel("Residual (m)")
     
     ry_fig.tight_layout()
-    ry_fig.savefig("4-Plots/od_ry_residuals.png")
+    ry_fig.savefig("figures/od_EKF_cross_track.png")
     
     rz_fig, rz_ax = plt.subplots()
     
     rz_ax.plot(time_steps, r_residuals[2])
     
-    rz_ax.set_title("Residuals in z")
+    rz_ax.set_title("EKF Radial Error")
     rz_ax.set_xlabel("Time (s)")
     rz_ax.set_ylabel("Residual (m)")
     
     rz_fig.tight_layout()
-    rz_fig.savefig("4-Plots/od_rz_residuals.png")
+    rz_fig.savefig("figures/od_EKF_radial_error.png")
     
     plt.show() 
     return
