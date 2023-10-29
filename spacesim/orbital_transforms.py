@@ -533,3 +533,59 @@ def ECI_to_ENU(
 ) -> np.ndarray:
     ecef = ECI_to_ECEF(eci, 0, epoch)
     return ECEF_to_ENU(ground_pos, ecef, use_km=use_km, geocentric=geocentric)
+
+def ECI_to_mapping_error(
+    r_eci: np.ndarray,
+    r_true: np.ndarray,
+    v_true: np.ndarray
+) -> tuple[float, float, float]:
+    """Finds the In-track, Cross-track and radial position errors
+    of a satellite. Used for determining mapping error.
+
+    Args:
+        r_eci (np.ndarray): Estimated position in the ECI frame.
+        r_true (np.ndarray): True position in the ECI frame.
+        v_true (np.ndarray): True velocity in the ECI frame.
+
+    Returns:
+        tuple[float, float, float]: In-track error, cross-track error, radial error.
+    """
+    r_eci =  r_eci.flatten()
+    r_true = r_true.flatten()
+    v_true = v_true.flatten()
+    
+    r_error = r_eci - r_true
+    
+    h = np.cross(r_true, v_true)    # h is normal to the orbital plane
+    
+    v_unit = v_true / np.linalg.norm(v_true)
+    h_unit = h / np.linalg.norm(h)
+    r_unit = r_true / np.linalg.norm(r_true)
+    
+    # vector projection - In track error
+    I_vec = (np.dot(r_error, v_true) / np.linalg.norm(v_true) ** 2) * v_true
+    delta_I = np.linalg.norm(I_vec)
+    
+    # determine direction of in-track error
+    if np.dot(I_vec, v_unit) < 0:
+        delta_I *= -1
+    
+    # vector projection - Radial error
+    proj_r = (np.dot(r_eci, r_true) / np.linalg.norm(r_true) ** 2) * r_true
+    R_vec = proj_r - r_eci   
+    delta_R = np.linalg.norm(R_vec)
+    
+    if np.dot(R_vec, r_unit) < 0:
+        delta_R *= -1
+    
+
+    # vector projection - Cross track error
+    C_vec = (np.dot(r_eci, h) / np.linalg.norm(h) ** 2) * h   # cross-track error
+    delta_C = np.linalg.norm(C_vec)
+    
+    if np.dot(C_vec, h_unit) < 0:
+        delta_C *= -1
+    
+    # print(delta_C)
+    
+    return delta_I, delta_C, delta_R

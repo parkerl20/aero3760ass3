@@ -120,6 +120,7 @@ class ExtendedKalmanFilter():
 			tuple[np.ndarray, np.ndarray, np.ndarray]: The predicted state,
 				the innovation, and the predicted state covariance.
         """
+   
         trans_mtx = self.transition_matrix_func(*f_args)
         
         state_est = trans_mtx @ self.curr_state_est
