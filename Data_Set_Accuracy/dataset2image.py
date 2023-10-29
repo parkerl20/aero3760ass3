@@ -12,9 +12,9 @@ def main_dataset2image():
     # Define the region of interest (AOI) as a geometry
     aoi = ee.Geometry.Polygon(
         [[[-122.5, 37.5],
-        [-122.4, 37.5],
-        [-122.4, 37.6],
-        [-122.5, 37.6]]])
+        [-122.0, 37.5],
+        [-122.0, 37.75],
+        [-122.5, 37.75]]])
 
     # Define the date range
     start_date = '2021-01-01'
@@ -36,14 +36,19 @@ def main_dataset2image():
         'description': 'Landsat8_Image',
         'scale': 30,  # Spatial resolution in meters per pixel
         'region': aoi.getInfo()['coordinates'],
+        'crs': 'EPSG:4326',
         'fileFormat': 'GeoTIFF'  # Export format (e.g., GeoTIFF)
     }
 
     # Initiate the export task
     task = batch.Export.image.toDrive(**export_params)
 
+    task.start()
+
     # Monitor the task status
     print('Exporting...', task)
+
+    print(task.status())
 
     # Optionally, wait for the task to complete
     while task.active():
@@ -53,12 +58,11 @@ def main_dataset2image():
     print('Task Status:', task.status())
 
     # Get the download URL for the exported image
-    download_url = dataset.getDownloadURL({
-        'name': 'Landsat8_Image',
-        'scale': 30,
-        'region': aoi
-    })
+    # After the task is completed, get the download URL from the assets
 
+    asset_id = task.status()['destination_uris'][0]
+    download_url = asset_id
+    
     # Define the local output path for the downloaded image
     output_path = 'Data_Set_Accuracy/images/Landsat8_Image.tif'
 
