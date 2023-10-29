@@ -246,6 +246,7 @@ class RealTimeSatellite(orb.Orbit):
             
             self.current_r_eci = position
             self.current_v_eci = velocity
+            self.current_time = time
             
             sensor_measurements = dict()
             
