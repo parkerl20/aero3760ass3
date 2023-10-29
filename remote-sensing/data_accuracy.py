@@ -3,6 +3,29 @@ import matplotlib.pyplot as plt
 import math
 
 
+def calculateCameraFOV():
+
+    # Data from the microHSI 425 Sensor
+
+    H_size = 15 * 0.001 # micrometers into mm
+    V_size = 15 * 0.001 # micrometers into mm
+
+    focal = 25 # mm
+
+    H_pixels = 640
+    V_pixels = 512
+
+    h = H_size * H_pixels
+    w = V_size * V_pixels
+
+    FOV_H = 2 * np.arctan(w/(2*focal))
+    FOV_V = 2 * np.arctan(h/(2*focal))
+
+    print("Field of View, Vertical: ", np.rad2deg(FOV_V))
+
+    return 0
+
+
 def calculateSpatialRes():
 
     n = 4                        # Number of cameras
@@ -53,6 +76,10 @@ def calculateMappingError():
 
     D = R_E * division
 
+    # Calculate Mapping Error
+
+    print("\n\n Mapping Error \n\n")
+
     azimuth_error = delta_phi_rad * D * np.sin(eta_rad)
     nadir_error = delta_eta_rad * D / np.sin(elevation_rad)
 
@@ -62,9 +89,9 @@ def calculateMappingError():
     R_T = R_E
     R_S = R_E + H
 
-    delta_I = 0.00134
-    delta_C = 0.00134
-    delta_R = 0.00267
+    delta_I = 0.36 * 0.01 * 0.001 #0.00134
+    delta_C = delta_I #0.00134
+    delta_R = delta_I #0.00267
 
     delta_Rt = 0.0001
 
@@ -92,8 +119,47 @@ def calculateMappingError():
     rms_result = calculate_rms(data)
     print(f"The root mean square (FINAL MAPPING ACCURACY) is {rms_result:.6f}.")
 
+    # Calculate Pointing Error
+
+    '''
+        SMAD states that,
+            say our esnsor has a 1 deg FOV, if our pointing error is
+            at least four times less than that (i.e. 0.25 deg), we 
+            can be assured the target is within the FOV on essentially 
+            every observation (within 6SD, which is virtually always).
+        Page 212 of PDF, 195 of SMAD
+    '''
+
+    print("\n\n Pointing Error \n\n")
+
+    azimuth_pointing_error = delta_phi_deg * np.sin(eta_rad)
+    nadir_pointing_error = delta_eta_deg
+
+    print("Azimuth pointing error: ", azimuth_pointing_error)
+    print("Nadir angle pointing error: ", nadir_pointing_error)
+
+    Y_I = np.arccos(np.cos(phi_rad)*np.sin(eta_rad))
+    Y_C = np.arccos(np.sin(phi_rad)*np.sin(eta_rad))
+    
+    intrack_pointing = delta_I / D * np.sin(Y_I)
+    crosstrack_pointing = delta_C / D * np.sin(Y_C)
+    radiai_pointing = delta_R / D * np.sin(eta_rad)
+
+    print("In-track error: ", intrack_pointing)
+    print("Cross-track error: ", crosstrack_pointing)
+    print("Radial error: ", radiai_pointing)
+    print("Target altitude: N/A ")
+
+    # Sample data
+    data_pointing = [azimuth_pointing_error, nadir_pointing_error, 
+                     intrack_pointing, crosstrack_pointing, radiai_pointing]
+
+    # Calculate RMS
+    rms_result_pointing = calculate_rms(data_pointing)
+    print(f"The root mean square (FINAL POINTING ACCURACY) is {rms_result_pointing:.6f}.")
 
     return delta_I, delta_C, delta_R
+
 
 
 def nadirMappingError(std_dev_x, std_dev_y, num_points):
@@ -120,14 +186,14 @@ def nadirMappingError(std_dev_x, std_dev_y, num_points):
     plt.show()
 
 
-def swathEdgeMappingError(num_points):
+def swathEdgeMappingError(std_dev_x, std_dev_y, num_points):
 
     np.random.seed(0)  # Setting a seed for reproducibility
 
     # Set the mean and standard deviations
     mean = 0
-    std_dev_x = 250     # North Error (m)
-    std_dev_y = 250     # East Error (m)
+    std_dev_x *= 2500 # Convert from km to m
+    std_dev_y *= 2500 # Convert from km to m
 
     # Generate random data points
     east_errors = np.random.normal(mean, std_dev_x, num_points)
@@ -156,7 +222,7 @@ def singlePointError(std_dev, size):
     # Plotting the histogram
     plt.figure(figsize=(8, 6))
     plt.hist(data_with_noise, bins=30, density=True, alpha=0.7, color='g')
-    plt.title('Histogram of Data with Normal Distribution and Noise', fontsize=16)
+    plt.title('Monte Carlo on Mapping Accuracy Confidence on One Point', fontsize=16)
     plt.xlabel('Mapping Accuracy Error (m)', fontsize=12)
     plt.ylabel('Frequency', fontsize=12)
     plt.grid(axis='y', alpha=0.75)
@@ -181,13 +247,15 @@ def main():
 
     observations = 5000
     
+    calculateCameraFOV()
+
     spatialRes = calculateSpatialRes()
     print("Spatial Resolution: ", spatialRes)
 
     std_dev_x, std_dev_y, std_dev_radial = calculateMappingError()
-    singlePointError(std_dev_radial, observations)
-    nadirMappingError(std_dev_x, std_dev_y, observations)
-    swathEdgeMappingError(observations)
+    # singlePointError(std_dev_radial, observations)
+    # nadirMappingError(std_dev_x, std_dev_y, observations)
+    # swathEdgeMappingError(std_dev_x, std_dev_y, observations)
 
     
 
