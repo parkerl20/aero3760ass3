@@ -46,10 +46,34 @@ def calculateSpatialRes():
 
 
 
+# def nadirMappingError(std_dev_x, std_dev_y, num_points):
+
+#     std_dev_x *= 1000 # Convert from km to m
+#     std_dev_y *= 1000 # Convert from km to m
+
+#     # Set the mean and standard deviations
+#     mean = 0
+
+#     # Generate random data points
+#     east_errors = np.random.normal(mean, std_dev_x, num_points)
+#     north_errors = np.random.normal(mean, std_dev_y, num_points)
+
+#     # Create the plot
+#     plt.figure(figsize=(8, 6))
+#     plt.scatter(east_errors, north_errors, facecolors='none', edgecolors='b')
+#     plt.axhline(y=0, color='k', linestyle='--', linewidth=0.5)
+#     plt.axvline(x=0, color='k', linestyle='--', linewidth=0.5)
+#     plt.title('Nadir Mapping Errors', fontsize=16)
+#     plt.xlabel('East Error (m)', fontsize=12)
+#     plt.ylabel('North Error (m)', fontsize=12)
+#     plt.grid(True, linestyle='--', alpha=0.5)
+#     plt.show()
+
+
 def nadirMappingError(std_dev_x, std_dev_y, num_points):
 
-    std_dev_x *= 1000 # Convert from km to m
-    std_dev_y *= 1000 # Convert from km to m
+    std_dev_x *= 1000  # Convert from km to m
+    std_dev_y *= 1000  # Convert from km to m
 
     # Set the mean and standard deviations
     mean = 0
@@ -58,9 +82,13 @@ def nadirMappingError(std_dev_x, std_dev_y, num_points):
     east_errors = np.random.normal(mean, std_dev_x, num_points)
     north_errors = np.random.normal(mean, std_dev_y, num_points)
 
+    # Calculate standard deviation
+    std_dev = np.sqrt(east_errors ** 2 + north_errors ** 2)
+
     # Create the plot
     plt.figure(figsize=(8, 6))
-    plt.scatter(east_errors, north_errors, facecolors='none', edgecolors='b')
+    plt.scatter(east_errors, north_errors, c=std_dev, cmap='viridis', marker='o')
+    plt.colorbar(label='Standard Deviation')
     plt.axhline(y=0, color='k', linestyle='--', linewidth=0.5)
     plt.axvline(x=0, color='k', linestyle='--', linewidth=0.5)
     plt.title('Nadir Mapping Errors', fontsize=16)
@@ -68,6 +96,7 @@ def nadirMappingError(std_dev_x, std_dev_y, num_points):
     plt.ylabel('North Error (m)', fontsize=12)
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.show()
+    plt.savefig('nadir_error.png')
 
 
 def swathEdgeMappingError(std_dev_x, std_dev_y, num_points):
@@ -83,9 +112,13 @@ def swathEdgeMappingError(std_dev_x, std_dev_y, num_points):
     east_errors = np.random.normal(mean, std_dev_x, num_points)
     north_errors = np.random.normal(mean, std_dev_y, num_points)
 
+    # Calculate standard deviation
+    std_dev = np.sqrt(east_errors ** 2 + north_errors ** 2)
+
     # Create the plot
     plt.figure(figsize=(8, 6))
-    plt.scatter(east_errors, north_errors, facecolors='none', edgecolors='b')
+    plt.scatter(east_errors, north_errors, c=std_dev, cmap='viridis', marker='o')
+    plt.colorbar(label='Standard Deviation')
     plt.axhline(y=0, color='k', linestyle='--', linewidth=0.5)
     plt.axvline(x=0, color='k', linestyle='--', linewidth=0.5)
     plt.title('Edge of FOV Mapping Errors', fontsize=16)
@@ -93,6 +126,7 @@ def swathEdgeMappingError(std_dev_x, std_dev_y, num_points):
     plt.ylabel('North Error (m)', fontsize=12)
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.show()
+    plt.savefig('swath_error.png')
 
 
 def singlePointError(std_dev, size):
@@ -125,8 +159,8 @@ def main():
 
     std_dev_x, std_dev_y, std_dev_radial = mapping_error.calculateMappingError()
     # singlePointError(std_dev_radial, observations)
-    # nadirMappingError(std_dev_x, std_dev_y, observations)
-    # swathEdgeMappingError(std_dev_x, std_dev_y, observations)
+    nadirMappingError(std_dev_x, std_dev_y, observations)
+    swathEdgeMappingError(std_dev_x, std_dev_y, observations)
 
     
 
