@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 def initialise_credentials():
     # Initialise credentials
     service_account = "spacey@spacey-401400.iam.gserviceaccount.com"
-    key_path = "key.json"    
+    key_path = "gee/key.json"    
     credentials = ee.ServiceAccountCredentials(service_account, key_path)
     ee.Initialize(credentials=credentials)
 
@@ -77,11 +77,11 @@ def main():
     image = ee.Image('USGS/SRTMGL1_003')
 
     # Specify the file path, scale, and region for export
-    file_path = 'tifs/image.tif'
+    file_path = 'gee/tifs/image.tif'
     scale = 30
     lat = -33.7749  # Example latitude
     lon = 151.4194  # Example longitude
-    band = 'B8'  # Example band name
+    band = 'elevation'  # Example band name
 
     # Export the image
     export_result = export_image_to_tif_with_region(image, file_path, scale, lat, lon, band)
