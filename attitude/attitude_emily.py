@@ -173,7 +173,6 @@ def nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init):
       
         y = C_lgcv2body_quat @ ref_vectors_lgcv.T
 
-        print("y",y.T)
         # this is correct ^ vector
         # y is vectors y[:,i] is a vector 
 
@@ -182,9 +181,7 @@ def nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init):
         # we make some observation in body frame
         # then we have some reference vectors in lgcv
         # we use the angles we have to find the equivalent body frame measurements
-        print("vector_obs", vector_obs)
         dy = vector_obs - y.T
-        print("dy", dy)
 
         # dy is x y z, x y z, x y z
         # for NLLS formula
@@ -227,10 +224,17 @@ def nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init):
 
         # Weights matrix based on sensor accuracy
         W = np.eye(vector_obs.size)
-        # Sun sensor accuracy
-        # W[0,0] = 0.22
-        # W[1,1] = 0.22
-        # W[2,2] = 0.22
+        # 36 vector - we have 12 sensors each with x y z accuracy
+        # cannot weight euler angles - can only weight sensor accuracy
+        # Sun sensor accuracy 0.3
+        # star tracker 1
+        W[0,0] = 0.3
+        W[1,1] = 0.3
+        W[2,2] = 0.3
+
+        W[3,3] = 0.3
+        W[4,4] = 0.3
+        W[5,5] = 0.3
 
         # # Star tracker z component less accurate
         # W[5,5] = 0.14
@@ -246,22 +250,32 @@ def nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init):
         datt = np.linalg.inv(H.T @ W @ H) @ H.T @ W @ dy
         # datt is quaternion wxyz
 
-        print("datt", datt)
          
         if np.sum(np.abs(datt) > tol):
+            # print("START")
+            # print(quat2euler(att_opt))
+            # print("datt", datt)
             att_opt = att_opt + datt.T
+            # print(quat2euler(att_opt))
+            att_opt = att_opt/np.linalg.norm(att_opt)
+            # print(quat2euler(att_opt))
             datts.append(np.abs(np.linalg.norm(datt)))
             i +=1
-            print()
+         
         
             att_store = np.append(att_store,[quat2euler(att_opt)], axis = 0)
         else:
+            att_opt = att_opt/np.linalg.norm(att_opt)
             break
     
     print()
     print(f"Number of iterations to converge: {i}")
+    if i == 100:
+        not_converged = 1
+    else:
+        not_converged = 0
     # print("PDOP:",dops)
-    return att_opt, dops, att_store, i, datts
+    return att_opt/np.linalg.norm(att_opt), dops, att_store, i, datts, not_converged
 
 def quaternion_multiply(quaternion1, quaternion0):
     w0, x0, y0, z0 = quaternion0
@@ -276,7 +290,7 @@ def main():
 
     # att_init = (np.array([10,32,-45]))
     # initial guess
-    att_init = (np.array([5,5,5]))
+    att_init = euler2quat(np.array([0,0,0]))
     real_attitude = [10, 30, -45]
     # real_attitude = [ 12.85378879 , 47.59094252,-30.52834642]
 
@@ -287,7 +301,7 @@ def main():
   
 
     time_start = 0
-    one_period = 1# 60000
+    one_period = 300# 60000
 
     initial_euler = [10, 30, -45]
     initial_quat = attitude_transforms.euler2quat(initial_euler)
@@ -324,40 +338,52 @@ def main():
 
 
 
-    real_attitude = [ 16,   53, -23]
-    real_attitude = [10, 50,-45]
-    real_attitude = [15,-45,30]
-    real_attitude = [ 16,   53, -23]
+    # real_attitude = [10, 50,-45]
+    # real_attitude = [15,-45,30]
+    # real_attitude = [ 16,   53, -23]
 
-    print(np.linalg.norm(euler2quat(real_attitude)))
-    print(np.linalg.norm(euler2quat([15,-45,30])))
-    print(np.linalg.norm(euler2quat([10, 50,-45])))
-    print(np.linalg.norm(euler2quat([10, 30,-45])))
+    print((euler2quat(real_attitude)))
+    # [ 0.87551721 -0.38865382  0.22162565  0.1824826 ]
+    #nice quat ^^
+
+    # [ 0.343162    0.12721205  0.24932435 -0.13266423]
+    # [0.14398904 0.47897751 0.83864741 0.21568086]
+    
+    # print(np.linalg.norm(euler2quat([15,-45,30])))
+    # print(np.linalg.norm(euler2quat([10, 50,-45])))
+    # print(np.linalg.norm(euler2quat([10, 30,-45])))
 
 
     print(quat2euler(euler2quat([70,30,-45])))
 
-    eulers = [real_attitude]*len(times)
     # init guess
-    att_init = euler2quat([15,50,-20])
+    # att_init = euler2quat([60,30,-40])
     
 
     # eulers = np.array(eulers)
     # # eulers = np.random.normal(0, [100,100,100] , (50,3))
     # print(eulers)
 
+    
     for t in range(len(times)):
-        num_stars = 5
-        stars, sun = findStarSunPositions(num_stars,times[t])
-
+        num_stars = 10
         # number of sensor measurements at one time interval
-        n = 1
-        # try with just one
+        n = 2
 
-        ref_vectors = np.array([sun, stars[:,0], stars[:,1],stars[:,2], stars[:,3], stars[:,4]])
+        stars, sun = findStarSunPositions(num_stars*n,times[t])
+
+        # try with just one
+        ref_vectors = []
+        for i in range(n):
+            ref_vectors.append(sun)
+        for i in range(n*num_stars):
+            ref_vectors.append(stars[:,i])
+        ref_vectors = np.array(ref_vectors)
+        # ref_vectors = np.array([sun,sun, stars[:,0], stars[:,1],stars[:,2], stars[:,3], stars[:,4], 
+        #                         stars[:,5], stars[:,6],stars[:,7], stars[:,8], stars[:,9]])
         # duplicate for the number of measurements we have from each timestep
         # ref_vectors = np.repeat(ref_vectors, n, axis = 0)
-        ref_vectors = np.tile(ref_vectors, n)
+        # ref_vectors = np.tile(ref_vectors, n)
         print(ref_vectors)
 
 
@@ -375,11 +401,8 @@ def main():
         print(times[-1])
 
 
-        euler_sun_sensor_errors = np.random.normal(eulers[t-1], 0.01306 , (n,3))
-        euler_star_tracker_errors =np.random.normal(eulers[t-1], [0.00286, 0.00286, 0.02005], (n,3)) 
-
-        euler_sun_sensor_errors = np.random.normal(eulers[t-1], 0 , (n,3))
-        euler_star_tracker_errors =np.random.normal(eulers[t-1], 0, (n,3)) 
+        euler_sun_sensor_errors = np.random.normal(eulers[t-1], 0.01306 , (n,3)) # 0.01306
+        euler_star_tracker_errors =np.random.normal(eulers[t-1], [0.00286,  0.02005, 0.00286,], (n,3)) 
 
 
         print("SENSORS",euler_sun_sensor_errors)
@@ -390,6 +413,7 @@ def main():
         observed_vectors = np.zeros((n*(num_stars+1), 3))
 
         # generate data for sun sensor
+        # sun sensor readings are the same 
         count = 0
         # refs are in order sun sun star star
         for angles in euler_sun_sensor_errors:
@@ -438,31 +462,31 @@ def main():
             C_lgcv2body_quat = np.array([[qw**2 + qx**2 - qy**2 - qz**2, 2*(qx*qy - qw*qz), 2*(qx*qz + qw*qy)],
                                 [2*(qx*qy + qw*qz), qw**2 - qx**2 + qy**2 - qz**2, 2*(qy*qz - qw*qx)],
                                 [2*(qx*qz - qw*qy), 2*(qy*qz + qw*qx), qw**2 - qx**2 - qy**2 + qz**2]]).T
+            print("count", count)
 
-
-            observed_vectors[1: num_stars+1] = ((C_lgcv2body_quat @ ref_vectors[1:num_stars+1].T).T)
-            count = count + 1
+            observed_vectors[count:  num_stars+count] = ((C_lgcv2body_quat @ ref_vectors[count:num_stars+count].T).T)
+            count = count + num_stars
         observed_vectors = np.array(observed_vectors)
 
         for vector in observed_vectors:
             print(C_lgcv2body_quat.T @ vector)
 
-        print(ref_vectors)
+        # print(ref_vectors)
 
-        print("OBSERVED VECTORS", observed_vectors)
-        print("REF VECTORS", ref_vectors)
+        # print("OBSERVED VECTORS", observed_vectors)
+        # print("REF VECTORS", ref_vectors)
    
         # needs to be in radians
-        att_opt, dops, att_store, i, datts = nlls_quaternion_weights(observed_vectors, ref_vectors, att_init)
+        att_opt, dops, att_store, i, datts, not_converged = nlls_quaternion_weights(observed_vectors, ref_vectors, att_init)
+        dops_euler = euler2quat(dops)
         final_estimates[t-1] = (quat2euler(att_opt))
         iterations.append(i)
         # next guess is final estimate
         att_init = att_opt
         
-        print("INIT ATT", att_init)
-        print("ATT ACTUALLY", eulers[t])
-        dops_time[t-1] = dops
-        print("DOP for quaternion params W X Y Z:", dops)
+        print("INIT ATT", quat2euler(att_init))
+        print("ATT ACTUALLY", eulers[t-1])
+        dops_time[t-1] = dops_euler
 
         # dops times vector error for actual mapping error
         # errors are 1° maybe
@@ -472,14 +496,15 @@ def main():
         
 
         print("Final attitude estimation Z Y X:", quat2euler(att_opt))
-        stop
+        print("DOP for quaternion params W X Y Z:", dops)
+
+
     print(final_estimates)
-    print(eulers)
     
     plt.figure()
-    plt.plot(range(len(att_store)), np.full((len(att_store)),real_attitude[0]), label = "True Yaw")
-    plt.plot(range(len(att_store)), np.full((len(att_store)),real_attitude[1]), label = "True Pitch")
-    plt.plot(range(len(att_store)), np.full((len(att_store)),real_attitude[2]), label = "True Roll")
+    plt.plot(range(len(att_store)), np.full((len(att_store)),eulers[-1,0]), label = "True Yaw")
+    plt.plot(range(len(att_store)), np.full((len(att_store)),eulers[-1,1]), label = "True Pitch")
+    plt.plot(range(len(att_store)), np.full((len(att_store)),eulers[-1,2]), label = "True Roll")
     plt.plot(range(len(att_store)), att_store[:,0], label = "Yaw")
     plt.plot(range(len(att_store)), att_store[:,1], label = "Pitch")
     plt.plot(range(len(att_store)), att_store[:,2], label = "Roll")
@@ -495,9 +520,9 @@ def main():
     plt.ylabel("Value")
     plt.savefig("converge")
 
-    plot_attitude_propagation(times, eulers)
+    # plot_attitude_propagation(times, eulers)
+    # eulers_long = np.random.normal(eulers, 0.02, (len(eulers),3))
 
-    plot_attitude_propagation(times, final_estimates)
     
     plot_attitude_propagation(times, eulers-final_estimates)
 
@@ -511,21 +536,30 @@ def main():
     # plt.xlabel("Time")
     # plt.savefig("overtime")
 
+    # plt.figure()
+    # plt.plot(range(len(dops_time)), dops_time[:,0], label = "W")
+    # plt.plot(range(len(dops_time)), dops_time[:,1], label = "X")
+    # plt.plot(range(len(dops_time)), dops_time[:,2], label = "Y")
+    # plt.plot(range(len(dops_time)), dops_time[:,3], label = "Z")
+    # plt.legend()
+    # plt.ylabel("DOPs")
+    # plt.xlabel("Timesteps")
+    # plt.show()
+
     plt.figure()
-    plt.plot(range(len(dops_time)), dops_time[:,0], label = "W")
-    plt.plot(range(len(dops_time)), dops_time[:,1], label = "X")
-    plt.plot(range(len(dops_time)), dops_time[:,2], label = "Y")
-    plt.plot(range(len(dops_time)), dops_time[:,3], label = "Z")
+    plt.plot(range(len(dops_time)), dops_time[:,0], label = "Yaw")
+    plt.plot(range(len(dops_time)), dops_time[:,1], label = "Pitch")
+    plt.plot(range(len(dops_time)), dops_time[:,2], label = "Roll")
     plt.legend()
     plt.ylabel("DOPs")
-    plt.xlabel("Time")
+    plt.xlabel("Timesteps")
     plt.show()
 
     plt.figure()
     plt.plot(range(len(iterations)), iterations, label = "iterations to converge")
     plt.legend()
     plt.ylabel("Iterations to Converge")
-    plt.xlabel("Time")
+    plt.xlabel("Timesteps (over 300s)")
     plt.show()
 
 
