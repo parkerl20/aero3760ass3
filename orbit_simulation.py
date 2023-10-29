@@ -7,6 +7,7 @@ from spacesim import constants as const
 from spacesim import estimation as est
 from spacesim import util
 from spacesim import orbital_transforms as ot
+from spacesim import orbit as orb
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -48,6 +49,16 @@ def orbit_simulation(
     )
     
     propagation_time = satellite.period
+    
+    # Add attitude state
+    satellite.init_v_eci = np.concatenate(
+        satellite.init_v_eci.flatten(),
+        np.array([1, 0, 0.045, 0.015])
+    )
+    
+    satellite.init_v_eci = satellite.init_v_eci.reshape(-1, 1)
+    satellite.reset()
+    satellite.set_dynamics(orbit_dynamics)
     
     
     # ---------------- Mount sensors to satellite
@@ -144,6 +155,41 @@ def orbit_simulation(
     )
 
     return
+
+def orbit_dynamics(
+    t: float,
+    state_vector: np.ndarray, 
+    orbit: orb.Orbit
+) -> np.ndarray:
+    mu = orbit.body.gravitational_parameter
+    
+    r = state_vector[0:3]
+    v = state_vector[3:6]
+    
+    r_mag = np.linalg.norm(r)
+    
+    q0 = state_vector[6:10].reshape(4,1)     # Quaternion
+    
+    # Two body equation
+    r_dot = v
+    v_dot = -(mu / r_mag**3) * r
+    
+    # Quaternion propagation
+    p = 0.0016
+    q = 0.0016
+    r = 0.0016
+
+    q_matrix = 0.5 * np.array([
+        [0, -p, -q, -r],
+        [p, 0, r, -q],
+        [q, -r, 0, p],
+        [r, q, -p, 0]])
+    
+    q_dot = (0.5 * q_matrix @ q0).flatten()
+    
+    return [*r_dot, *v_dot, *q_dot]
+    
+    
 
 def gnss_reciever_simulator(
     gnss_reciever: sensor.SatelliteSensor,
@@ -411,7 +457,7 @@ def mapping_budget(r_eci, r_true, v_true, euler_truths, euler_estimate):
 
 
     R_E = 6371  # km
-    H = 500    # km
+    H = np.linalg.norm(r_eci) - R_E
     R_T = R_E
     R_S = R_E + H
 
