@@ -320,7 +320,7 @@ def create_od_results(
     
     # r_fig.savefig("4-Plots/od_r_residuals.png")
     
-    rx_fig, rx_ax = plt.subplots(3,1)
+    rx_fig, rx_ax = plt.subplots()
     rx_ax.plot(time_steps, r_residuals[0])
     
     
@@ -356,3 +356,32 @@ def create_od_results(
     
     plt.show() 
     return
+
+def sun_sensor_simulator(
+    sun_sensor: sensor.SatelliteSensor,
+    satellite: sat.RealTimeSatellite,
+    r: np.ndarray,
+    v: np.ndarray
+) -> bool:
+    """Simulates the sun sensor on a satellite"""
+    # Get ECI position estimation
+    position_ekf = satellite.algorithms["OD EKF"]
+    
+    ekf_dt = satellite.current_time - position_ekf.t_last
+    eci_est = position_ekf.algorithm.predict_state(
+        f_args=(
+            position_ekf.algorithm.get_state()[:3],
+            ekf_dt
+        )
+    )
+    
+    current_epoch = satellite.epoch + dt.timedelta(seconds=satellite.current_time)
+
+def star_tracker_simulator(
+    star_tracker: sensor.SatelliteSensor,
+    satellite: sat.RealTimeSatellite,
+    r: np.ndarray,
+    v: np.ndarray
+) -> bool:
+    """Simulates the star tracker on a satellite"""
+    pass
