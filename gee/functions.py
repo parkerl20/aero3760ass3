@@ -205,10 +205,18 @@ def S2A_coverage(start_date: str, end_date: str, lon_lat, circle_radius):
     Map.set_center(146.9211, -31.2532, 6) # Center of nsw
 
     # Coverage points
-    multipoint = ee.Geometry.MultiPoint(lon_lat)
-    # point = ee.Geometry.Point(lon_lat[6]) # Point near sydney
+    # multipoint = ee.Geometry.MultiPoint(lon_lat)
+
+    point = ee.Geometry.Point(lon_lat[6]) # Point near sydney
     # coverage = point.buffer(circle_radius)
-    coverage = multipoint.buffer(circle_radius)
+
+    # squares = [ee.Geometry.Point(coords).buffer(circle_radius).bounds() for coords in lon_lat]
+    # coverage = ee.Geometry.MultiPolygon([square.coordinates() for square in squares])
+
+    squares = ee.Geometry.Point(lon_lat[6]).buffer(circle_radius).bounds()
+    coverage = ee.Geometry.MultiPolygon([squares.coordinates()])
+
+    # coverage = multipoint.buffer(circle_radius)
     # mean_ndvi_clipped = mean_ndvi.clip(coverage)
     infrared_clipped = dataset.mean().clip(coverage)
     # Map.add_ee_layer(mean_ndvi_clipped, ndvi_vis, "NDVI")

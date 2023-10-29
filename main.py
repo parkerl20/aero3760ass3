@@ -24,16 +24,16 @@ def main():
     epoch = dt.datetime(2023, 1, 1)
     simulation_time = 1000
 
-    orbit_simulation(
-        simulation_time,
-        a,
-        e,
-        i,
-        RAAN,
-        arg_p,
-        true_anom,
-        epoch
-    )
+    # orbit_simulation(
+    #     simulation_time,
+    #     a,
+    #     e,
+    #     i,
+    #     RAAN,
+    #     arg_p,
+    #     true_anom,
+    #     epoch
+    # )
 
     mainGee(results)
 
