@@ -67,6 +67,7 @@ def save_to_png(file_path):
         plt.savefig('figures/sydney.png')
 
 
+
 def main():
 
     initialise_credentials()
