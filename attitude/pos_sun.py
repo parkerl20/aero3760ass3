@@ -41,7 +41,7 @@ def build_stereographic_projection(location):
 
     return project
 
-def findStarSunPositions(num_stars, day, hour):
+def findStarSunPositions(num_stars, time):
     """
     finds sun and num_stars position in metres at given day and hour (of october 2023)
 
@@ -49,7 +49,8 @@ def findStarSunPositions(num_stars, day, hour):
     # Julian Date Time
 
     ts = load.timescale()
-    t= ts.utc(2023, 10, day, hour)
+    # t= ts.utc(2023, 10, day, hour)
+    t = ts.J(2023) + time
     print("t:", t)
 
     # An ephemeris from the JPL provides Sun and Earth positions.

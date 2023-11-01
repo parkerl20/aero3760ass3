@@ -1,3 +1,4 @@
+import math
 from spacesim import estimation as est
 from spacesim import satellite as sat
 from spacesim import celestial_body as cb
@@ -5,6 +6,8 @@ from spacesim import sensor
 from spacesim import constants as const
 from spacesim import estimation as est
 from spacesim import util
+from spacesim import orbital_transforms as ot
+from spacesim import orbit as orb
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -46,6 +49,16 @@ def orbit_simulation(
     )
     
     propagation_time = satellite.period
+    
+    # Add attitude state
+    satellite.init_v_eci = np.concatenate(
+        satellite.init_v_eci.flatten(),
+        np.array([1, 0, 0.045, 0.015])
+    )
+    
+    satellite.init_v_eci = satellite.init_v_eci.reshape(-1, 1)
+    satellite.reset()
+    satellite.set_dynamics(orbit_dynamics)
     
     
     # ---------------- Mount sensors to satellite
@@ -93,11 +106,6 @@ def orbit_simulation(
     time_steps = []    
     gnss_times = []
     
-    import csv
-    csv_file = open("satellite_position.csv", "w", newline="")
-    csv_writer = csv.writer(csv_file)
-    
-    csv_writer.writerow(["time", "x", "y", "z"])
     
     for r_true, v_true, t in satellite:
         if t > propagation_time:
@@ -118,20 +126,27 @@ def orbit_simulation(
         ekf_v = ekf_state[3:].flatten()
         
         x, y, z = ekf_r
-        csv_writer.writerow([t, x, y, z])
         
-        r_residuals[0].append(r_true[0] - ekf_r[0])
-        r_residuals[1].append(r_true[1] - ekf_r[1])
-        r_residuals[2].append(r_true[2] - ekf_r[2])
+        # r_residuals[0].append(r_true[0] - ekf_r[0])
+        # r_residuals[1].append(r_true[1] - ekf_r[1])
+        # r_residuals[2].append(r_true[2] - ekf_r[2])
+        
+        in_track, cross_track, radial = ot.ECI_to_mapping_error(
+            ekf_r,
+            r_true,
+            v_true
+        )
+        
+        r_residuals[0].append(in_track)
+        r_residuals[1].append(cross_track)
+        r_residuals[2].append(radial)
         
         v_residuals[0].append(v_true[0] - ekf_v[0])
         v_residuals[1].append(v_true[1] - ekf_v[1])
         v_residuals[2].append(v_true[2] - ekf_v[2])
         
         time_steps.append(t)
-    
-    csv_file.close()
-    # raw_r = 
+     
     create_od_results(
         r_residuals,
         v_residuals,
@@ -140,6 +155,41 @@ def orbit_simulation(
     )
 
     return
+
+def orbit_dynamics(
+    t: float,
+    state_vector: np.ndarray, 
+    orbit: orb.Orbit
+) -> np.ndarray:
+    mu = orbit.body.gravitational_parameter
+    
+    r = state_vector[0:3]
+    v = state_vector[3:6]
+    
+    r_mag = np.linalg.norm(r)
+    
+    q0 = state_vector[6:10].reshape(4,1)     # Quaternion
+    
+    # Two body equation
+    r_dot = v
+    v_dot = -(mu / r_mag**3) * r
+    
+    # Quaternion propagation
+    p = 0.0016
+    q = 0.0016
+    r = 0.0016
+
+    q_matrix = 0.5 * np.array([
+        [0, -p, -q, -r],
+        [p, 0, r, -q],
+        [q, -r, 0, p],
+        [r, q, -p, 0]])
+    
+    q_dot = (0.5 * q_matrix @ q0).flatten()
+    
+    return [*r_dot, *v_dot, *q_dot]
+    
+    
 
 def gnss_reciever_simulator(
     gnss_reciever: sensor.SatelliteSensor,
@@ -320,39 +370,142 @@ def create_od_results(
     
     # r_fig.savefig("4-Plots/od_r_residuals.png")
     
-    rx_fig, rx_ax = plt.subplots(3,1)
+    rx_fig, rx_ax = plt.subplots()
     rx_ax.plot(time_steps, r_residuals[0])
     
     
-    rx_ax.set_title("Residuals in x")
+    rx_ax.set_title("EKF In-Track Error")
     rx_ax.set_xlabel("Time (s)")
     rx_ax.set_ylabel("Residual (m)")
     
     rx_fig.tight_layout()
     
-    rx_fig.savefig("4-Plots/od_rx_residuals.png")
+    rx_fig.savefig("figures/od_EKF_in_track.png")
     
     ry_fig, ry_ax = plt.subplots()
     
     ry_ax.plot(time_steps, r_residuals[1])
     
-    ry_ax.set_title("Residuals in y")
+    ry_ax.set_title("EKF Cross-Track Error")
     ry_ax.set_xlabel("Time (s)")
     ry_ax.set_ylabel("Residual (m)")
     
     ry_fig.tight_layout()
-    ry_fig.savefig("4-Plots/od_ry_residuals.png")
+    ry_fig.savefig("figures/od_EKF_cross_track.png")
     
     rz_fig, rz_ax = plt.subplots()
     
     rz_ax.plot(time_steps, r_residuals[2])
     
-    rz_ax.set_title("Residuals in z")
+    rz_ax.set_title("EKF Radial Error")
     rz_ax.set_xlabel("Time (s)")
     rz_ax.set_ylabel("Residual (m)")
     
     rz_fig.tight_layout()
-    rz_fig.savefig("4-Plots/od_rz_residuals.png")
+    rz_fig.savefig("figures/od_EKF_radial_error.png")
     
     plt.show() 
     return
+
+def sun_sensor_simulator(
+    sun_sensor: sensor.SatelliteSensor,
+    satellite: sat.RealTimeSatellite,
+    r: np.ndarray,
+    v: np.ndarray
+) -> bool:
+    """Simulates the sun sensor on a satellite"""
+    # Get ECI position estimation
+    position_ekf = satellite.algorithms["OD EKF"]
+    
+    ekf_dt = satellite.current_time - position_ekf.t_last
+    eci_est = position_ekf.algorithm.predict_state(
+        f_args=(
+            position_ekf.algorithm.get_state()[:3],
+            ekf_dt
+        )
+    )
+    
+    current_epoch = satellite.epoch + dt.timedelta(seconds=satellite.current_time)
+
+def star_tracker_simulator(
+    star_tracker: sensor.SatelliteSensor,
+    satellite: sat.RealTimeSatellite,
+    r: np.ndarray,
+    v: np.ndarray
+) -> bool:
+    """Simulates the star tracker on a satellite"""
+    pass
+
+def calculate_rms(
+    data: np.array
+) -> float:
+    """
+    Calculate the root mean square of a list of values.
+    """
+    n = len(data)
+    if n < 1:
+        raise ValueError("Input list must contain at least one element.")
+
+    sum_of_squares = sum(x ** 2 for x in data)
+    rms = math.sqrt(sum_of_squares / n)
+    return rms
+
+def mapping_budget(r_eci, r_true, v_true, euler_truths, euler_estimate):
+
+    delta_I, delta_C, delta_R = ot.ECI_to_mapping_error(r_eci, r_true, v_true)
+    delta_azimuth, delta_elevation = ot.ECI_to_azimuth_error(euler_truths, euler_estimate)
+
+
+    R_E = 6371  # km
+    H = np.linalg.norm(r_eci) - R_E
+    R_T = R_E
+    R_S = R_E + H
+
+    elevation_deg = 60
+    elevation_rad = np.deg2rad(elevation_deg)
+
+    delta_phi_deg = 0.0005
+    delta_phi_rad = np.deg2rad(delta_phi_deg)
+
+    delta_eta_deg = 0.0005
+    delta_eta_rad = np.deg2rad(delta_eta_deg)
+
+    p_rad = np.arcsin(R_E/(R_E+H))
+    p_deg = np.rad2deg(p_rad)
+
+    eta_rad = np.arcsin(np.cos(elevation_rad) * np.sin(p_rad))
+    eta_deg = np.rad2deg(eta_rad)
+
+    lam_deg = 90 - elevation_deg - p_deg
+    lam_rad = np.deg2rad(lam_deg)
+
+    phi_deg = 30
+    phi_rad = np.deg2rad(phi_deg)
+
+    H_mapping = np.arcsin(np.sin(lam_rad)*np.sin(phi_rad))
+    G_mapping = np.arcsin(np.sin(lam_rad)*np.cos(phi_rad))
+ 
+    intrack_error = delta_I * R_T / R_S * np.cos(H_mapping)
+    crosstrack_error = delta_C * R_T / R_S * np.cos(G_mapping)
+    radial_error = delta_R * np.sin(eta_rad) / np.sin(elevation_rad)
+
+
+
+
+    division = 0.0451649 # for elevation 60 deg (worst case)
+
+    D = R_E * division
+
+    azimuth_error = delta_azimuth * D * np.sin(eta_rad)
+    nadir_error = delta_elevation * D / np.sin(elevation_rad)
+
+
+
+
+
+
+    data = [azimuth_error, nadir_error, intrack_error, crosstrack_error, radial_error]
+
+    rms = calculate_rms(data)
+
+    return rms

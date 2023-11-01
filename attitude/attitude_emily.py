@@ -2,12 +2,49 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.spatial.transform import Rotation
 from pos_sun import *
-
+from attitude_propagation import *
 '''
 NLLS for Attitude Determination
 '''
 
-  
+# from ECI 
+# get nadir  to lat long of earth
+# need to figure out rotation between body frame and vector to lat long of nadir
+# ECI 2 ECEF 2 ENU
+# TODO
+# integrate with position
+
+# point sensors in different directions - different stars?
+# account for sun going into dark - time of day
+# satellite needs always point nadir - how does this translate ??
+# scannign system
+# change attitude over time - to do with facing towards earth
+# weightings
+# for over time - use previous output as initial gues
+
+
+# yaw is perturbation
+# pitch change 
+# roll perturbation
+
+
+# read eci from csv
+# pos_eci = np.loadtxt('satellite_position.csv', delimiter=',')    
+
+
+# convert to ecef
+# use ot object
+# convert to enu
+
+
+# 1/1/2023 is epoch
+
+
+
+
+
+
+
 def euler2quat(x):
     """
     Converts Euler angles to quaternion
@@ -26,7 +63,10 @@ def euler2quat(x):
     qz = np.cos(roll/2) * np.cos(pitch/2) * np.sin(yaw/2) - np.sin(roll/2) * np.sin(pitch/2) * np.cos(yaw/2)
     qw = np.cos(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
     
-    return np.array([ qw,qx, qy, qz])
+    # normalise
+    quat = np.array([ qw,qx, qy, qz])
+    quat = quat/np.linalg.norm(quat)
+    return quat
 
 
 def quat2euler(q):
@@ -81,8 +121,9 @@ def nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init):
         i: Number of iterations for convergence
     """
     
-    # Initialise arrays
-    att_store = np.array([att_init])
+    # Initialise arrays 
+    # store as euler for easy interpretation
+    att_store = np.array([(quat2euler(att_init))])
 
     # Initial iteration params
     i = 0
@@ -91,7 +132,7 @@ def nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init):
     datt = 100
 
     # initial guess in quaternion
-    att_opt = euler2quat(att_init)
+    att_opt = att_init
     # att_opt = att_init
 
     datts = []
@@ -109,6 +150,7 @@ def nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init):
         qx = att_opt[1]
         qy = att_opt[2]
         qz = att_opt[3]
+
 
         x_eul = quat2euler(att_opt)
         psi = np.deg2rad(x_eul[0])
@@ -130,6 +172,7 @@ def nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init):
                     [np.cos(psi)*np.sin(theta)*np.cos(phi) + np.sin(psi)*np.sin(phi), np.sin(psi)*np.sin(theta)*np.cos(phi) - np.cos(psi)*np.sin(phi), np.cos(theta)*np.cos(phi)]])
       
         y = C_lgcv2body_quat @ ref_vectors_lgcv.T
+
         # this is correct ^ vector
         # y is vectors y[:,i] is a vector 
 
@@ -138,8 +181,8 @@ def nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init):
         # we make some observation in body frame
         # then we have some reference vectors in lgcv
         # we use the angles we have to find the equivalent body frame measurements
-
         dy = vector_obs - y.T
+
         # dy is x y z, x y z, x y z
         # for NLLS formula
         dy = dy.reshape(dy.size)
@@ -181,10 +224,17 @@ def nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init):
 
         # Weights matrix based on sensor accuracy
         W = np.eye(vector_obs.size)
-        # Sun sensor accuracy
-        # W[0,0] = 0.22
-        # W[1,1] = 0.22
-        # W[2,2] = 0.22
+        # 36 vector - we have 12 sensors each with x y z accuracy
+        # cannot weight euler angles - can only weight sensor accuracy
+        # Sun sensor accuracy 0.3
+        # star tracker 1
+        W[0,0] = 0.3
+        W[1,1] = 0.3
+        W[2,2] = 0.3
+
+        W[3,3] = 0.3
+        W[4,4] = 0.3
+        W[5,5] = 0.3
 
         # # Star tracker z component less accurate
         # W[5,5] = 0.14
@@ -200,18 +250,32 @@ def nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init):
         datt = np.linalg.inv(H.T @ W @ H) @ H.T @ W @ dy
         # datt is quaternion wxyz
 
+         
         if np.sum(np.abs(datt) > tol):
+            # print("START")
+            # print(quat2euler(att_opt))
+            # print("datt", datt)
             att_opt = att_opt + datt.T
+            # print(quat2euler(att_opt))
+            att_opt = att_opt/np.linalg.norm(att_opt)
+            # print(quat2euler(att_opt))
             datts.append(np.abs(np.linalg.norm(datt)))
             i +=1
+         
+        
             att_store = np.append(att_store,[quat2euler(att_opt)], axis = 0)
         else:
+            att_opt = att_opt/np.linalg.norm(att_opt)
             break
     
     print()
     print(f"Number of iterations to converge: {i}")
+    if i == 100:
+        not_converged = 1
+    else:
+        not_converged = 0
     # print("PDOP:",dops)
-    return att_opt, dops, att_store, i, datts
+    return att_opt/np.linalg.norm(att_opt), dops, att_store, i, datts, not_converged
 
 def quaternion_multiply(quaternion1, quaternion0):
     w0, x0, y0, z0 = quaternion0
@@ -226,75 +290,204 @@ def main():
 
     # att_init = (np.array([10,32,-45]))
     # initial guess
-    att_init = (np.array([5,5,5]))
+    att_init = euler2quat(np.array([0,0,0]))
     real_attitude = [10, 30, -45]
+    # real_attitude = [ 12.85378879 , 47.59094252,-30.52834642]
 
     # receive sensor data (stars position and sun position) based on 5 stars detected by star trackers
     # for 22 october
 
-    time = np.arange(1,10,1)
-    final_estimates = np.zeros((len(time), 3))
-    dops_time = np.zeros((len(time), 4))
-    for t in time:
-        num_stars = 5
-        stars, sun = findStarSunPositions(num_stars,22,t)
+    # time = np.arange(1,10,1)
+  
 
+    time_start = 0
+    one_period = 300# 60000
+
+    initial_euler = [10, 30, -45]
+    initial_quat = attitude_transforms.euler2quat(initial_euler)
+
+    attitude = solve_ivp(propagate_attitude, [time_start, one_period], initial_quat, method='RK45', max_step=10) 
+    attitude_poses = attitude.y[:, :]
+    times = attitude.t
+
+    # Create a NumPy array of zeros
+    eulers = []
+    # eulers = np.zeros(len(times), dtype=object)
+
+    # Resize each index to contain a NumPy array of 1x3
+    # for i in range(len(times)):
+    #     eulers[i] = np.zeros((1, 3))
+
+    # for i in range(0, len(eulers)):
+    for i in range(len(times)):
+        q = attitude_poses[:, i]
+        euler = attitude_transforms.quat2euler(q)
+        # print(euler.shape, type(euler))
+        # eulers[i] = euler
+        eulers.append(euler)
+        # print(eulers[i])
+        # eulers[i] = attitude_transforms.quat2euler(attitude.y[:, i])
+    eulers = np.array(eulers)
+
+
+    final_estimates = np.zeros((len(times), 3))
+    iterations = []
+    dops_time = np.zeros((len(times), 4))
+
+
+
+
+
+    # real_attitude = [10, 50,-45]
+    # real_attitude = [15,-45,30]
+    # real_attitude = [ 16,   53, -23]
+
+    print((euler2quat(real_attitude)))
+    # [ 0.87551721 -0.38865382  0.22162565  0.1824826 ]
+    #nice quat ^^
+
+    # [ 0.343162    0.12721205  0.24932435 -0.13266423]
+    # [0.14398904 0.47897751 0.83864741 0.21568086]
+    
+    # print(np.linalg.norm(euler2quat([15,-45,30])))
+    # print(np.linalg.norm(euler2quat([10, 50,-45])))
+    # print(np.linalg.norm(euler2quat([10, 30,-45])))
+
+
+    print(quat2euler(euler2quat([70,30,-45])))
+
+    # init guess
+    # att_init = euler2quat([60,30,-40])
+    
+
+    # eulers = np.array(eulers)
+    # # eulers = np.random.normal(0, [100,100,100] , (50,3))
+    # print(eulers)
+
+    
+    for t in range(len(times)):
+        num_stars = 10
         # number of sensor measurements at one time interval
         n = 2
 
-        ref_vectors = np.array([sun, stars[:,0], stars[:,1],stars[:,2], stars[:,3], stars[:,4]])
+        stars, sun = findStarSunPositions(num_stars*n,times[t])
+
+        # try with just one
+        ref_vectors = []
+        for i in range(n):
+            ref_vectors.append(sun)
+        for i in range(n*num_stars):
+            ref_vectors.append(stars[:,i])
+        ref_vectors = np.array(ref_vectors)
+        # ref_vectors = np.array([sun,sun, stars[:,0], stars[:,1],stars[:,2], stars[:,3], stars[:,4], 
+        #                         stars[:,5], stars[:,6],stars[:,7], stars[:,8], stars[:,9]])
         # duplicate for the number of measurements we have from each timestep
-        ref_vectors = np.repeat(ref_vectors, n, axis = 0)
+        # ref_vectors = np.repeat(ref_vectors, n, axis = 0)
+        # ref_vectors = np.tile(ref_vectors, n)
+        print(ref_vectors)
 
 
 
         # in euler angles
         # sun sensor random error 47 arc seconds = 0.01306 degrees
         # star tracker random error XYZ = 50, 50, 350 microradians = 0.00286, 0.00286, 0.02005 degrees
-        
+        # print("time", type(t), times)
+        # print()
         # generate in 100 euler angles
-        euler_sun_sensor_errors = np.random.normal(real_attitude, 0.01306 , (n,3))
-        euler_star_tracker_errors =np.random.normal(real_attitude, [0.00286, 0.00286, 0.02005], (n,3)) 
+
+        # print("EULERS", type((eulers[t])), eulers[t-1], t)
+        print(len(eulers))
+        print(len(times))
+        print(times[-1])
+
+
+        euler_sun_sensor_errors = np.random.normal(eulers[t-1], 0.01306 , (n,3)) # 0.01306
+        euler_star_tracker_errors =np.random.normal(eulers[t-1], [0.00286,  0.02005, 0.00286,], (n,3)) 
+
+
+        print("SENSORS",euler_sun_sensor_errors)
+        print(euler_star_tracker_errors)
+        print("REAL DATA", eulers[t-1])
+
 
         observed_vectors = np.zeros((n*(num_stars+1), 3))
 
         # generate data for sun sensor
+        # sun sensor readings are the same 
+        count = 0
+        # refs are in order sun sun star star
         for angles in euler_sun_sensor_errors:
 
-            psi = np.deg2rad(angles[0])
-            theta = np.deg2rad(angles[1])
-            phi = np.deg2rad(angles[2])
+            quat = euler2quat(angles)
+            
 
-            C_lgcv2body = np.array([[np.cos(psi)*np.cos(theta), np.sin(psi)*np.cos(theta), -np.sin(theta)],
-                        [np.cos(psi)*np.sin(theta)*np.sin(phi) - np.sin(psi)*np.cos(phi), np.sin(psi)*np.sin(theta)*np.sin(phi) + np.cos(psi)*np.cos(phi), np.cos(theta)*np.sin(phi)],
-                        [np.cos(psi)*np.sin(theta)*np.cos(phi) + np.sin(psi)*np.sin(phi), np.sin(psi)*np.sin(theta)*np.cos(phi) - np.cos(psi)*np.sin(phi), np.cos(theta)*np.cos(phi)]])
+            # psi = np.deg2rad(angles[0])
+            # theta = np.deg2rad(angles[1])
+            # phi = np.deg2rad(angles[2])
+
+            # C_lgcv2body = np.array([[np.cos(psi)*np.cos(theta), np.sin(psi)*np.cos(theta), -np.sin(theta)],
+            #             [np.cos(psi)*np.sin(theta)*np.sin(phi) - np.sin(psi)*np.cos(phi), np.sin(psi)*np.sin(theta)*np.sin(phi) + np.cos(psi)*np.cos(phi), np.cos(theta)*np.sin(phi)],
+            #             [np.cos(psi)*np.sin(theta)*np.cos(phi) + np.sin(psi)*np.sin(phi), np.sin(psi)*np.sin(theta)*np.cos(phi) - np.cos(psi)*np.sin(phi), np.cos(theta)*np.cos(phi)]])
+            
+            qw = quat[0]
+            qx = quat[1]
+            qy = quat[2]
+            qz = quat[3]
+
+            C_lgcv2body_quat = np.array([[qw**2 + qx**2 - qy**2 - qz**2, 2*(qx*qy - qw*qz), 2*(qx*qz + qw*qy)],
+                                [2*(qx*qy + qw*qz), qw**2 - qx**2 + qy**2 - qz**2, 2*(qy*qz - qw*qx)],
+                                [2*(qx*qz - qw*qy), 2*(qy*qz + qw*qx), qw**2 - qx**2 - qy**2 + qz**2]]).T
 
 
-            observed_vectors[0] = (C_lgcv2body @ ref_vectors[0])
-        
+
+            observed_vectors[count] = (C_lgcv2body_quat @ ref_vectors[0])
+            count = count + 1
+        print(observed_vectors)
         # generate data for star_tracker sensor
 
 
-
+        # count = 2
         for angles in euler_star_tracker_errors:
 
             psi = np.deg2rad(angles[0])
             theta = np.deg2rad(angles[1])
             phi = np.deg2rad(angles[2])
 
-            C_lgcv2body = np.array([[np.cos(psi)*np.cos(theta), np.sin(psi)*np.cos(theta), -np.sin(theta)],
-                        [np.cos(psi)*np.sin(theta)*np.sin(phi) - np.sin(psi)*np.cos(phi), np.sin(psi)*np.sin(theta)*np.sin(phi) + np.cos(psi)*np.cos(phi), np.cos(theta)*np.sin(phi)],
-                        [np.cos(psi)*np.sin(theta)*np.cos(phi) + np.sin(psi)*np.sin(phi), np.sin(psi)*np.sin(theta)*np.cos(phi) - np.cos(psi)*np.sin(phi), np.cos(theta)*np.cos(phi)]])
-        
-            observed_vectors[1:num_stars+1] = ((C_lgcv2body @ ref_vectors[1:num_stars+1].T).T)
-        
+            quat = euler2quat(angles)
+            qw = quat[0]
+            qx = quat[1]
+            qy = quat[2]
+            qz = quat[3]
+
+            C_lgcv2body_quat = np.array([[qw**2 + qx**2 - qy**2 - qz**2, 2*(qx*qy - qw*qz), 2*(qx*qz + qw*qy)],
+                                [2*(qx*qy + qw*qz), qw**2 - qx**2 + qy**2 - qz**2, 2*(qy*qz - qw*qx)],
+                                [2*(qx*qz - qw*qy), 2*(qy*qz + qw*qx), qw**2 - qx**2 - qy**2 + qz**2]]).T
+            print("count", count)
+
+            observed_vectors[count:  num_stars+count] = ((C_lgcv2body_quat @ ref_vectors[count:num_stars+count].T).T)
+            count = count + num_stars
         observed_vectors = np.array(observed_vectors)
 
+        for vector in observed_vectors:
+            print(C_lgcv2body_quat.T @ vector)
+
+        # print(ref_vectors)
+
+        # print("OBSERVED VECTORS", observed_vectors)
+        # print("REF VECTORS", ref_vectors)
+   
         # needs to be in radians
-        att_opt, dops, att_store, i, datts = nlls_quaternion_weights(observed_vectors, ref_vectors, att_init)
+        att_opt, dops, att_store, i, datts, not_converged = nlls_quaternion_weights(observed_vectors, ref_vectors, att_init)
+        dops_euler = euler2quat(dops)
         final_estimates[t-1] = (quat2euler(att_opt))
-        dops_time[t-1] = dops
-        print("DOP for quaternion params W X Y Z:", dops)
+        iterations.append(i)
+        # next guess is final estimate
+        att_init = att_opt
+        
+        print("INIT ATT", quat2euler(att_init))
+        print("ATT ACTUALLY", eulers[t-1])
+        dops_time[t-1] = dops_euler
+
         # dops times vector error for actual mapping error
         # errors are 1° maybe
         # print("DOP for euler params Z Y X:", quat2euler(dops))
@@ -302,13 +495,16 @@ def main():
         # get actual error for 
         
 
-    print("Final attitude estimation Z Y X:", quat2euler(att_opt))
+        print("Final attitude estimation Z Y X:", quat2euler(att_opt))
+        print("DOP for quaternion params W X Y Z:", dops)
+
+
     print(final_estimates)
     
     plt.figure()
-    plt.plot(range(len(att_store)), np.full((len(att_store)),real_attitude[0]), label = "True Yaw")
-    plt.plot(range(len(att_store)), np.full((len(att_store)),real_attitude[1]), label = "True Pitch")
-    plt.plot(range(len(att_store)), np.full((len(att_store)),real_attitude[2]), label = "True Roll")
+    plt.plot(range(len(att_store)), np.full((len(att_store)),eulers[-1,0]), label = "True Yaw")
+    plt.plot(range(len(att_store)), np.full((len(att_store)),eulers[-1,1]), label = "True Pitch")
+    plt.plot(range(len(att_store)), np.full((len(att_store)),eulers[-1,2]), label = "True Roll")
     plt.plot(range(len(att_store)), att_store[:,0], label = "Yaw")
     plt.plot(range(len(att_store)), att_store[:,1], label = "Pitch")
     plt.plot(range(len(att_store)), att_store[:,2], label = "Roll")
@@ -324,25 +520,46 @@ def main():
     plt.ylabel("Value")
     plt.savefig("converge")
 
+    # plot_attitude_propagation(times, eulers)
+    # eulers_long = np.random.normal(eulers, 0.02, (len(eulers),3))
 
+    
+    plot_attitude_propagation(times, eulers-final_estimates)
+
+
+    # plt.figure()
+    # plt.plot(range(len(final_estimates)), final_estimates[:,0] - real_attitude[0], label = "Yaw")
+    # plt.plot(range(len(final_estimates)), final_estimates[:,1] - real_attitude[1], label = "Pitch")
+    # plt.plot(range(len(final_estimates)), final_estimates[:,2] - real_attitude[2], label = "Roll")
+    # plt.legend()
+    # plt.ylabel("Final estimates deviation from true")
+    # plt.xlabel("Time")
+    # plt.savefig("overtime")
+
+    # plt.figure()
+    # plt.plot(range(len(dops_time)), dops_time[:,0], label = "W")
+    # plt.plot(range(len(dops_time)), dops_time[:,1], label = "X")
+    # plt.plot(range(len(dops_time)), dops_time[:,2], label = "Y")
+    # plt.plot(range(len(dops_time)), dops_time[:,3], label = "Z")
+    # plt.legend()
+    # plt.ylabel("DOPs")
+    # plt.xlabel("Timesteps")
+    # plt.show()
 
     plt.figure()
-    plt.plot(range(len(final_estimates)), final_estimates[:,0] - real_attitude[0], label = "Yaw")
-    plt.plot(range(len(final_estimates)), final_estimates[:,1] - real_attitude[1], label = "Pitch")
-    plt.plot(range(len(final_estimates)), final_estimates[:,2] - real_attitude[2], label = "Roll")
-    plt.legend()
-    plt.ylabel("Final estimates deviation from true")
-    plt.xlabel("Time")
-    plt.savefig("overtime")
-
-    plt.figure()
-    plt.plot(range(len(dops_time)), dops_time[:,0], label = "W")
-    plt.plot(range(len(dops_time)), dops_time[:,1], label = "X")
-    plt.plot(range(len(dops_time)), dops_time[:,2], label = "Y")
-    plt.plot(range(len(dops_time)), dops_time[:,3], label = "Z")
+    plt.plot(range(len(dops_time)), dops_time[:,0], label = "Yaw")
+    plt.plot(range(len(dops_time)), dops_time[:,1], label = "Pitch")
+    plt.plot(range(len(dops_time)), dops_time[:,2], label = "Roll")
     plt.legend()
     plt.ylabel("DOPs")
-    plt.xlabel("Time")
+    plt.xlabel("Timesteps")
+    plt.show()
+
+    plt.figure()
+    plt.plot(range(len(iterations)), iterations, label = "iterations to converge")
+    plt.legend()
+    plt.ylabel("Iterations to Converge")
+    plt.xlabel("Timesteps (over 300s)")
     plt.show()
 
 
@@ -391,178 +608,10 @@ def testing():
 
 
 
+
+
 if __name__ == '__main__':
     main()
 
 
 
-
-# NOT USED
-def nlls_euler_weights(vector_obs, ref_vectors_lgcv, att_init):
-    """
-    NOT USED
-    known vectors ref_vectors_lgcv m
-    y measured vectors in body frame vector_obs
-    should be performing nlls on y which is in the body frame vectors
-
-    Finds Non Linear Least Squares estimate of attitude in Euler angles, and PDOP
-    Inputs:
-        
-        att_data: attitude data for each satellite in Euluer (we can change this to be lgcv or something using matrix above)
-        
-        att_init: initial guess of attitude of sat in Euler angles
-
-    Outputs:
-        pos_opt: final position estimate of ground station in LLH
-        pdop: PDOP for NLLSE
-        pos_store: All the computed position estimates over the iterations
-        i_nlls: Number of iterations for convergence
-    """
-    
-    # Initialise arrays
-    att_store = np.array([att_init])
-
-
-    # fx = np.zeros_like(pseudo_sat)
-    # dpdx = np.zeros_like(pseudo_sat)
-    # dpdy = np.zeros_like(pseudo_sat)
-    # dpdz = np.zeros_like(pseudo_sat)
-
-    # Initial iteration params
-    i = 0
-    max_iter =200
-    tol =  1e-5
-    datt = 100
-    att_opt = att_init
-    datts = []
-
-    # until converges
-    while (i < max_iter) and (np.sum(np.abs(datt) > tol)):
-        
-        # for each sensor????
-        # how does this correspond to satellites from before
-        # like how do we get our input data???
-
-        # for each angle find calculated  based on previous estimate
-        psi = np.deg2rad(att_opt[0])
-        theta = np.deg2rad(att_opt[1])
-        phi =  np.deg2rad(att_opt[2])
-
-
-        C_lgcv = np.array([[np.cos(psi)*np.cos(theta), np.sin(psi)*np.cos(theta), -np.sin(theta)],
-                      [np.cos(psi)*np.sin(theta)*np.sin(phi) - np.sin(psi)*np.cos(phi), np.sin(psi)*np.sin(theta)*np.sin(phi) + np.cos(psi)*np.cos(phi), np.cos(theta)*np.sin(phi)],
-                    [np.cos(psi)*np.sin(theta)*np.cos(phi) + np.sin(psi)*np.sin(phi), np.sin(psi)*np.sin(theta)*np.cos(phi) - np.cos(psi)*np.sin(phi), np.cos(theta)*np.cos(phi)]])
-        
-
-        y = C_lgcv @ ref_vectors_lgcv.T
-
-        #y is vectors y[:,i] is a vector 
-
-        print(y.T)
-
-        # difference between measured and calculated
-        dy = (vector_obs - y.T)
-
-        print(y.T)
-        print("vector obs", vector_obs)
-        print("dy",dy)
-
-
-
-        print("dy", dy.shape)
-        dy = dy.reshape(dy.size)
-
-
-        print(dy)
-
-        
-        # Building H matrix for each vector measurement
-        
-        H = []
-        for m in vector_obs:
-            H11 = 0
-            H12 = -np.cos(psi)*np.sin(theta)*m[0] - np.sin(psi)*np.sin(theta)*m[1] - np.cos(theta)*m[2]
-            H13 = -np.sin(psi)*np.cos(phi)*m[0] + np.cos(psi)*np.cos(phi)*m[1]
-
-            H21 = (np.cos(psi)*np.sin(theta)*np.cos(phi) + np.sin(psi)*np.sin(phi))*m[0] + (np.sin(psi)*np.sin(theta)*np.cos(phi) - np.cos(psi)*np.sin(phi))*m[1] + np.cos(theta)*np.cos(phi)*m[2]
-            H22 = np.cos(psi)*np.cos(theta)*np.sin(phi)*m[0] + np.sin(psi)*np.cos(theta)*np.sin(phi)*m[1] - np.sin(theta)*np.sin(phi)*m[2]
-            H23 = (-np.sin(psi)*np.sin(theta)*np.sin(phi) - np.cos(psi)*np.cos(phi))*m[0] + (np.cos(psi)*np.sin(theta)*np.sin(phi) - np.sin(psi)*np.cos(phi))*m[1]
-
-            H31 = (-np.cos(psi)*np.sin(theta)*np.sin(phi) + np.sin(psi)*np.cos(phi))*m[0] + (-np.sin(psi)*np.sin(theta)*np.sin(phi) - np.cos(psi)*np.cos(phi))*m[1] - np.cos(theta)*np.sin(phi)*m[2]
-            H32 = np.cos(psi)*np.cos(theta)*np.cos(phi)*m[0] + np.sin(psi)*np.cos(theta)*np.cos(phi)*m[1] - np.sin(theta)*np.cos(phi)*m[2]
-            H33 = (-np.sin(psi)*np.sin(theta)*np.cos(phi) + np.cos(psi)*np.sin(phi))*m[0] + (np.cos(psi)*np.sin(theta)*np.cos(phi) + np.sin(psi)*np.sin(phi))*m[1]
-
-            # H = np.append(H, [
-            # H = np.array([
-            H.append(np.array([
-                [H11, H12, H13 ],
-                [H21, H22, H23],
-                [H31, H32, H33]]))
-        
-        H = np.array(H)
-        # print(H.shape)
-        # Reshaping to be 2 dimensional
-        H = H.reshape(vector_obs.size,3)
-        # make H for each sensor
-        # H = np.array([H,H,H])
-
-       # Equal weights matrix for 
-        W = np.eye(vector_obs.size)
-     
-        # W = np.array([
-        #     [0.2,0,0,0,0,0,0,0,0,0,0,0],
-        #     [0,0.2,0,0,0,0,0,0,0,0,0,0],
-        #     [0,0,0.2,0,0,0,0,0,0,0,0,0],
-        #     [0,0,0,1,0,0,0,0,0,0,0,0],
-        #     [0,0,0,0,1,0,0,0,0,0,0,0],
-        #     [0,0,0,0,0,1,0,0,0,0,0,0],
-        #     [0,0,0,0,0,0,1,0,0,0,0,0],
-        #     [0,0,0,0,0,0,0,1,0,0,0,0],
-        #     [0,0,0,0,0,0,0,0,1,0,0,0],
-        #     [0,0,0,0,0,0,0,0,0,1,0,0],
-        #     [0,0,0,0,0,0,0,0,0,0,1,0],
-        #     [0,0,0,0,0,0,0,0,0,0,0,1]
-
-        # ])
-        W[0,0] = 0.2
-        W[1,1] = 0.2
-        W[2,2] = 0.2
-        
-
-
-        # print(vector_obs.shape)
-
-        # W = np.eye(3)
-        
-        # print(H.shape)
-        # PDOP        
-        pdop = np.sqrt(np.trace( np.linalg.inv( H.T @ H )))
-
-        # NLLS calculation for change in attitude for next iterations
-        # H = np.array([H,H,H])
-        # print(dy)
-        datt = np.linalg.inv(H.T @ W @ H) @ H.T @ W @ dy
-
-        # this will  output radians
-        # print(datt)
-
-        datt_deg = np.rad2deg(datt)
-        # print(datt_deg)
-
-        # confused about dimension sizing
-        # datt = datt.reshape((att_opt.shape))
-        
-
-        if np.sum(np.abs(datt) > tol):
-            att_opt = att_opt + datt.T
-            datts.append(np.linalg.norm(datt))
-            
-            i +=1
-            att_store = np.append(att_store,[att_opt], axis = 0)
-        else:
-            break
-    
-    print()
-    print(f"Number of iterations to converge: {i}")
-    print("PDOP:",pdop)
-    return att_opt, pdop, att_store, i, datts

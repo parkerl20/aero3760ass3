@@ -173,7 +173,7 @@ def S2A_NDVI(start_date: str, end_date: str):
 
 
 def S2A_coverage(start_date: str, end_date: str, lon_lat, circle_radius):
-   # Sentinel-2A satellite
+    # Sentinel-2A satellite
     dataset = (
         ee.ImageCollection('COPERNICUS/S2_SR')
         .filterDate(start_date, end_date)
@@ -205,13 +205,32 @@ def S2A_coverage(start_date: str, end_date: str, lon_lat, circle_radius):
     Map.set_center(146.9211, -31.2532, 6) # Center of nsw
 
     # Coverage points
+    # multipoint = ee.Geometry.MultiPoint(lon_lat)
+
+    # point = ee.Geometry.Point(lon_lat[6]) # Point near sydney
+    # coverage = point.buffer(circle_radius)
+
     # squares = [ee.Geometry.Point(coords).buffer(circle_radius).bounds() for coords in lon_lat]
     # coverage = ee.Geometry.MultiPolygon([square.coordinates() for square in squares])
 
-    multipoint = ee.Geometry.MultiPoint(lon_lat)
-    # point = ee.Geometry.Point(lon_lat[6]) # Point near sydney
-    # coverage = point.buffer(circle_radius)
-    coverage = multipoint.buffer(circle_radius)
+    squares = ee.Geometry.Point(lon_lat[500]).buffer(circle_radius).bounds()
+    coverage = ee.Geometry.MultiPolygon([squares.coordinates()])
+
+    # Extract the bounds
+    bounds = squares.bounds().getInfo()['coordinates'][0]
+
+    # Print the bounds
+    print("Latitude-Longitude Bounds of the Square:")
+    for point in bounds:
+        print("Latitude:", point[1], ", Longitude:", point[0])
+
+    # Define a region of interest using ee.Geometry.Rectangle
+    roi = ee.Geometry.Rectangle([[bounds[0][0], bounds[0][1]], [bounds[2][0], bounds[2][1]]])
+
+    # Add the region of interest to the map
+    Map.addLayer(roi, {}, 'ROI')
+
+    # coverage = multipoint.buffer(circle_radius)
     # mean_ndvi_clipped = mean_ndvi.clip(coverage)
     infrared_clipped = dataset.mean().clip(coverage)
     # Map.add_ee_layer(mean_ndvi_clipped, ndvi_vis, "NDVI")
