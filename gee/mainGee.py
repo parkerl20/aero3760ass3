@@ -7,8 +7,8 @@ def mainGee(results):
        in your browser.
     """
     # Load in data
-    r_obv = results[0]['r'][:]
-    t_obv = results[0]['t'][:]
+    r_obv = results[3]['r'][:]
+    t_obv = results[3]['t'][:]
     epoch = dt.datetime(2023, 1, 1)
 
     # Connect to GEE
@@ -16,13 +16,14 @@ def mainGee(results):
 
     # Latitude and longitude conversion
     # lon_lat = functions.eci_to_llh(r_obv, t_obv, epoch)
-    lon_lat = functions.eci_to_llh_nsw(r_obv, t_obv, epoch, num_points=100)
+    lon_lat = functions.eci_to_llh_nsw(r_obv, t_obv, epoch, num_points=0)
 
     # Sentinel-2A satellite
     # Map = functions.S2A("2019-12-01", "2020-01-31")
     # Map = functions.fires()
     # Map = functions.S2A_NDVI("2019-12-01", "2020-01-31")
     Map = functions.S2A_coverage("2019-12-01", "2020-01-31", lon_lat, circle_radius=345088) # Radius corresponding to a 6.2 degree swathe width
+    # Map = functions.S2A_coverage("2019-12-01", "2020-01-31", lon_lat, circle_radius=20000) # Radius corresponding to a 6.2 degree swathe width
     # Map = functions.plot_red_points(lon_lat, circle_radius=10)
 
     # Create map
