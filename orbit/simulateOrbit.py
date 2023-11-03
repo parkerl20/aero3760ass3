@@ -51,7 +51,7 @@ def simulateOrbit(a, e, i, rt_asc, arg_p, theta, show_results) -> None:
     results = []
     for orbit in orbits:
         # Propopgate orbit
-        r, v, t = orbit.propagate(propagation_time)
+        r, v, _, t = orbit.propagate(propagation_time)
 
         # Save to a dictionary
         result = {

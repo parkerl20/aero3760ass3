@@ -83,6 +83,8 @@ class Orbit():
             theta
         )
         
+        self.init_attitude =np.array([[0, 0 ,0 ,0]]).T
+        
         # Calculated instance variables
         self.period: float = 2 * math.pi * (mu / a**3) ** (-1/2)
         
@@ -131,7 +133,7 @@ class Orbit():
         coord_frame: str = "ECI",
         max_step: int = 20,
         analytical: bool = False,
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Propagates the orbit of a satellite. 
         
         Checks the cache to see if the orbit has already been propagated 
@@ -187,7 +189,7 @@ class Orbit():
         
         # If no changes needed i.e. fully cached
         if self.__is_cached(t, t_start, use_km, coord_frame) and not analytical:
-            return self._orbit_r, self._orbit_v, self._orbit_t
+            return self._orbit_r, self._orbit_v, 0, self._orbit_t
         
         return self.__propagate(t, t_start, use_km, coord_frame, max_step)
     
@@ -250,8 +252,13 @@ class Orbit():
         # Dynamics
         r_dot = v
         v_dot = -(mu / (r_mag ** 3)) * r      # Two body equation
+        
+        # TODO: Attidude dynamics - flatten at end
+        att = state_vector[6:10]       # 1D array length 4
+        att_dot = np.array([[0, 0 ,0 ,0]]).T
+        att_dot = att_dot.flatten()
 
-        return [*r_dot, *v_dot]
+        return [*r_dot, *v_dot, *att_dot]
     
     def __propagate(
         self,
@@ -295,8 +302,9 @@ class Orbit():
         
         init_r = self.init_r_eci
         init_v = self.init_v_eci
+        init_att = self.init_attitude
         
-        y0 = np.concatenate((init_r, init_v)).flatten()
+        y0 = np.concatenate((init_r, init_v, init_att)).flatten()
         t_span = [t_start, t]
         solution = integrate.solve_ivp(
             self.orbit_dynamics,
@@ -308,6 +316,7 @@ class Orbit():
         
         r = solution.y[0:3]
         v = solution.y[3:6]
+        att = solution.y[6:10]
         t = solution.t
         
         if use_km:
@@ -321,8 +330,8 @@ class Orbit():
         self._prop_in_km = use_km
         self._propergate_period = [t_start, t]
         self._frame = coord_frame
-        
-        return r, v, t
+
+        return r, v, att, t
 
     def set_dynamics(
         self, 
@@ -421,7 +430,7 @@ class Orbit():
         self._orbit_v = v
         self._orbit_t = t_steps
         
-        return r, v, t_steps
+        return r, v, 0, t_steps
                
     @staticmethod
     def mean_to_true_anomaly(

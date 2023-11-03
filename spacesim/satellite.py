@@ -175,6 +175,7 @@ class RealTimeSatellite(orb.Orbit):
         
         self.current_r_eci = self.init_r_eci
         self.current_v_eci = self.init_v_eci
+        self.current_attitude = self.init_attitude
         self.current_time = 0
         
         self.propagation_length = propagation_length
@@ -209,7 +210,12 @@ class RealTimeSatellite(orb.Orbit):
         Returns:
             np.ndarray: The position of the satellite in ECI coordinates.
         """
-        y0 = np.concatenate((self.current_r_eci, self.current_v_eci)).flatten()
+        y0 = np.concatenate((
+            self.current_r_eci,
+            self.current_v_eci,
+            self.current_attitude
+        )).flatten()
+        
         t_span = [0, self.propagation_length]
         
         # Calculate evaluation points      
@@ -235,7 +241,8 @@ class RealTimeSatellite(orb.Orbit):
         )
         
         r = solution.y[0:3]
-        v = solution.y[3:6]       
+        v = solution.y[3:6]  
+        attitude = solution.y[6:10]     
         t = solution.t + self.current_time
         
         # Simulate sensor measurements
@@ -272,9 +279,10 @@ class RealTimeSatellite(orb.Orbit):
                     
         self.current_r_eci = r[:, -1].flatten()
         self.current_v_eci = v[:, -1].flatten()
+        self.current_attitude = attitude[:, -1].flatten()
         self.current_time = t[-1]
         
-        return r[:,-1], v[:,-1], t[-1]
+        return r[:,-1], v[:,-1], attitude[-1], t[-1]
     
     def reset(self) -> None:
         """Resets the satellite to its initial state.
@@ -291,12 +299,13 @@ class RealTimeSatellite(orb.Orbit):
     def __iter__(self):
         return self
     
-    def __next__(self) -> tuple[np.ndarray, np.ndarray, float]:
+    def __next__(self) -> tuple[np.ndarray, np.ndarray, np.ndarray, float]:
         if self._start_flag:
             self._start_flag = False
             return (
                 self.current_r_eci.flatten(),
                 self.current_v_eci.flatten(),
+                self.current_attitude.flatten(),
                 self.current_time
             )
         
