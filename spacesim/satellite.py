@@ -249,10 +249,12 @@ class RealTimeSatellite(orb.Orbit):
         for i in range(len(t) - 1):
             position = r[:, i].flatten()
             velocity = v[:, i].flatten()
+            attitude = attitude[:, i].flatten()
             time = t[i]
             
             self.current_r_eci = position
             self.current_v_eci = velocity
+            self.current_attitude = attitude
             self.current_time = time
             
             sensor_measurements = dict()

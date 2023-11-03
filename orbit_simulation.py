@@ -76,7 +76,15 @@ def orbit_simulation(
         frequency=20
     )
     
+    star_tracker = sensor.SatelliteSensor(
+        "star_tracker",
+        np.zeros(3,),       # place holder
+        star_tracker_simulator,
+        frequency=1
+    )
+    
     satellite.attach_sensor(gnss_reciever)
+    satellite.attach_sensor(star_tracker)
     
     # ------------------ Add algorithms
     initial_state = np.concatenate(
@@ -101,7 +109,16 @@ def orbit_simulation(
         util.DictLogger()
     )
     
+    # Attitude NLLS
+    attitude_nlls_algo = sat.SatelliteAlgorithm(
+        "Attitude NLLS",
+        None,
+        attitude_NLLS_algo_function
+    )
+    
+    
     satellite.add_algorithm(ekf_od_algorithm)
+    satellite.add_algorithm(attitude_nlls_algo)
     
     # Simulate the satellite
     r_residuals = [[], [], []]
@@ -132,14 +149,25 @@ def orbit_simulation(
         
         x, y, z = ekf_r
         
+        # Attitude residuals
+        att_estimation = None       # NLLS estmation
+        
         # r_residuals[0].append(r_true[0] - ekf_r[0])
         # r_residuals[1].append(r_true[1] - ekf_r[1])
         # r_residuals[2].append(r_true[2] - ekf_r[2])
         
-        in_track, cross_track, radial = ot.ECI_to_mapping_error(
+        # in_track, cross_track, radial = ot.ECI_to_mapping_error(
+        #     ekf_r,
+        #     r_true,
+        #     v_true
+        # )
+        
+        in_track, cross_track, radial = mapping_budget(
             ekf_r,
             r_true,
-            v_true
+            v_true,
+            attitude_true,      # needs to be converted to euhler (in quarternions)
+            att_estimation
         )
         
         r_residuals[0].append(in_track)
@@ -270,6 +298,9 @@ def gnss_reciever_simulator(
     r = r.flatten()
     v = v.flatten()
     
+    # Getting current attitude
+    attitude = satellite.current_attitude
+    
     r[0] += np.random.normal(
         0,
         gnss_reciever.noise_std[0]
@@ -301,6 +332,7 @@ def gnss_reciever_simulator(
     )
     
     gnss_reciever.mesurement = np.concatenate((r, v))
+    
     return True
 
 def EKF_transition_matrix_func(r: np.ndarray, dt: float) -> np.ndarray:    
@@ -504,6 +536,7 @@ def star_tracker_simulator(
     v: np.ndarray
 ) -> bool:
     """Simulates the star tracker on a satellite"""
+    # TODO
     pass
 
 def calculate_rms(
@@ -579,3 +612,31 @@ def mapping_budget(r_eci, r_true, v_true, euler_truths, euler_estimate):
     rms = calculate_rms(data)
 
     return rms
+
+def attitude_NLLS_algo_function(
+    time: float,
+    nlls: sat.SatelliteAlgorithm,
+    satellite: sat.RealTimeSatellite,
+    sensors: dict[str, sensor.SatelliteSensor],
+    logger: util.DictLogger = None
+) -> None:
+    # nlls.algorithm == None
+    # returns None if star tracker not in sensors dictionary
+    star_tracker = sensors.get("star_tracker", None)
+    sun_sensor = sensors.get("sun_sensor", None)
+    
+    # One way
+    # star_tracker_attitude = None
+    # sun_sensor_attitude = None
+    
+    if star_tracker is not None:
+        # do start tracker stuff
+        star_tracker_attitude = star_tracker.get_measurement()
+        pass
+    
+    if sun_sensor is not None:
+        # do sun sensor stuff
+        sun_sensor_attitude = sun_sensor.get_measurement()
+        pass
+    
+    pass
