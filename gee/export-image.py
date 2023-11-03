@@ -68,21 +68,19 @@ def dataset_to_tif(image, file_path, scale, band, rectangle_bounds):
     
 
 
-def tif_to_png(file_path, i):
-    with rasterio.open(file_path) as src:
-        # Read the image as a numpy array
-        img = src.read(2)  # Replace '1' with the band you want to visualize
-
-        # Get the spatial transform (geotransform)
-        transform = src.transform
-
-        # Get the spatial extent (bounding box)
-        extent = [transform[2], transform[2] + transform[0] * src.width,
-                transform[5] + transform[4] * src.height, transform[5]]
+def tif_to_png(file_paths, i):
 
         # Create a figure and plot the image
         fig, ax = plt.subplots(figsize=(10, 10))
-        im = ax.imshow(img, extent=extent)
+
+        for i, file_path in enumerate(file_paths):
+            with rasterio.open(file_path) as src:
+                img = src.read(2)  # Replace '1' with the band you want to visualize
+                transform = src.transform
+                extent = [transform[2], transform[2] + transform[0] * src.width,
+                        transform[5] + transform[4] * src.height, transform[5]]
+
+                ax.imshow(img, extent=extent, alpha=0.5)
 
         # Add a colorbar
         # cbar = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
@@ -114,7 +112,9 @@ def main():
         .map(calculate_ndvi) # Calculates the NDVI index
     )
 
-    for i in range(0, 1):
+    file_paths = []
+
+    for i in range(0, 4):
 
         rectangle_bounds = [141.115256 + 2*i, -28.356159 - 1*i, 147.315256 + 2*i, -34.956159 - 1*i]
 
@@ -146,7 +146,9 @@ def main():
 
         # tif --> png --> saved in files
         dataset_to_tif(infrared_clipped, file_path, scale, band, rectangle_bounds)
-        tif_to_png(file_path, i)
+        file_paths.append(file_path)
+
+    tif_to_png(file_paths, i)
 
     return 0
 
