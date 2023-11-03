@@ -34,6 +34,10 @@ def orbit_simulation(
     np.random.seed(32)
     propagation_length = 20
     
+    # Mapping params
+    elevation_deg = 60
+    
+    
     satellite = sat.RealTimeSatellite(
         a,
         e,
@@ -50,15 +54,15 @@ def orbit_simulation(
     
     propagation_time = satellite.period
     
-    # Add attitude state
-    satellite.init_v_eci = np.concatenate(
-        satellite.init_v_eci.flatten(),
-        np.array([1, 0, 0.045, 0.015])
-    )
+    # # Add attitude state
+    # satellite.init_v_eci = np.concatenate(
+    #     satellite.init_v_eci.flatten(),
+    #     np.array([1, 0, 0.045, 0.015]) # Quaternions of Euler Angles (10, 30, -45)
+    # )
     
-    satellite.init_v_eci = satellite.init_v_eci.reshape(-1, 1)
-    satellite.reset()
-    satellite.set_dynamics(orbit_dynamics)
+    # satellite.init_v_eci = satellite.init_v_eci.reshape(-1, 1)
+    # satellite.reset()
+    # satellite.set_dynamics(orbit_dynamics)
     
     
     # ---------------- Mount sensors to satellite
@@ -72,7 +76,15 @@ def orbit_simulation(
         frequency=20
     )
     
+    star_tracker = sensor.SatelliteSensor(
+        "star_tracker",
+        np.zeros(3,),       # place holder
+        star_tracker_simulator,
+        frequency=1
+    )
+    
     satellite.attach_sensor(gnss_reciever)
+    satellite.attach_sensor(star_tracker)
     
     # ------------------ Add algorithms
     initial_state = np.concatenate(
@@ -80,7 +92,7 @@ def orbit_simulation(
             satellite.init_r_eci.flatten(),
             satellite.init_v_eci.flatten()
         )
-    ).reshape(6, 1)
+    ).reshape(-1, 1)
     
     process_noise = 0.15 * np.eye(6)
     
@@ -97,7 +109,16 @@ def orbit_simulation(
         util.DictLogger()
     )
     
+    # Attitude NLLS
+    attitude_nlls_algo = sat.SatelliteAlgorithm(
+        "Attitude NLLS",
+        None,
+        attitude_NLLS_algo_function
+    )
+    
+    
     satellite.add_algorithm(ekf_od_algorithm)
+    satellite.add_algorithm(attitude_nlls_algo)
     
     # Simulate the satellite
     r_residuals = [[], [], []]
@@ -105,9 +126,10 @@ def orbit_simulation(
     raw_r = [[], [], []]
     time_steps = []    
     gnss_times = []
+    mappings = [[], [], []]
     
     
-    for r_true, v_true, t in satellite:
+    for r_true, v_true, attitude_true, t in satellite:
         if t > propagation_time:
             break
         
@@ -127,14 +149,25 @@ def orbit_simulation(
         
         x, y, z = ekf_r
         
+        # Attitude residuals
+        att_estimation = None       # NLLS estmation
+        
         # r_residuals[0].append(r_true[0] - ekf_r[0])
         # r_residuals[1].append(r_true[1] - ekf_r[1])
         # r_residuals[2].append(r_true[2] - ekf_r[2])
         
-        in_track, cross_track, radial = ot.ECI_to_mapping_error(
+        # in_track, cross_track, radial = ot.ECI_to_mapping_error(
+        #     ekf_r,
+        #     r_true,
+        #     v_true
+        # )
+        
+        in_track, cross_track, radial = mapping_budget(
             ekf_r,
             r_true,
-            v_true
+            v_true,
+            attitude_true,      # needs to be converted to euhler (in quarternions)
+            att_estimation
         )
         
         r_residuals[0].append(in_track)
@@ -146,14 +179,79 @@ def orbit_simulation(
         v_residuals[2].append(v_true[2] - ekf_v[2])
         
         time_steps.append(t)
-     
+        
+        # MApping accuracies
+        in_track, cross_track, radial = ot.ECI_to_mapping_error(
+            ekf_r,
+            r_true,
+            v_true
+        )
+        
+        R_H = np.linalg.norm(ekf_r) - const.R_EARTH
+        R_T = const.R_EARTH
+        R_S = const.R_EARTH + R_H
+        
+        eta_rad = np.arcsin((1/2) * (const.R_EARTH / R_S))
+        eta_deg = np.rad2deg(eta_rad)
+        
+        lam_deg = 90 - elevation_deg - eta_deg
+        lam_rad = np.deg2rad(lam_deg)
+        
+        phi_deg = 90
+        phi_rad = np.deg2rad(phi_deg)
+        
+        H_mapping = np.arcsin(np.sin(lam_rad) * np.sin(phi_rad))
+        G_mapping = np.arcsin(np.sin(lam_rad) * np.cos(phi_rad))
+        
+        intrack_error = in_track * R_T / R_S * np.cos(H_mapping)
+        crosstrack_error = cross_track * R_T / R_S * np.cos(G_mapping)
+        radial_error = radial * np.sin(eta_rad) / np.sin(elevation_deg)
+        
+        mappings[0].append(intrack_error)
+        mappings[1].append(crosstrack_error)
+        mappings[2].append(radial_error)
+        
+        
     create_od_results(
         r_residuals,
         v_residuals,
         np.array(satellite.algorithms["OD EKF"].logger.get_log("r_residual")).T,
         time_steps
     )
-
+    
+    # Plot mapping errors on seperate axes
+    in_track_fig, in_track_ax = plt.subplots()
+    in_track_ax.plot(time_steps, mappings[0])
+    
+    in_track_ax.set_title("In-Track Mapping Error")
+    in_track_ax.set_xlabel("Time (s)")
+    in_track_ax.set_ylabel("Error (m)")
+    
+    in_track_fig.tight_layout()
+    in_track_fig.savefig("figures/od_mapping_in_track.png")
+    
+    cross_track_fig, cross_track_ax = plt.subplots()
+    cross_track_ax.plot(time_steps, mappings[1])
+    
+    cross_track_ax.set_title("Cross-Track Mapping Error")
+    cross_track_ax.set_xlabel("Time (s)")
+    cross_track_ax.set_ylabel("Error (m)")
+    
+    cross_track_fig.tight_layout()
+    cross_track_fig.savefig("figures/od_mapping_cross_track.png")
+    
+    radial_fig, radial_ax = plt.subplots()
+    radial_ax.plot(time_steps, mappings[2])
+    
+    radial_ax.set_title("Radial Mapping Error")
+    radial_ax.set_xlabel("Time (s)")
+    radial_ax.set_ylabel("Error (m)")
+    
+    radial_fig.tight_layout()
+    radial_fig.savefig("figures/od_mapping_radial.png")
+    
+    plt.show()
+    
     return
 
 def orbit_dynamics(
@@ -185,7 +283,7 @@ def orbit_dynamics(
         [q, -r, 0, p],
         [r, q, -p, 0]])
     
-    q_dot = (0.5 * q_matrix @ q0).flatten()
+    q_dot = (q_matrix @ q0).flatten()
     
     return [*r_dot, *v_dot, *q_dot]
     
@@ -199,6 +297,9 @@ def gnss_reciever_simulator(
 ) -> bool:
     r = r.flatten()
     v = v.flatten()
+    
+    # Getting current attitude
+    attitude = satellite.current_attitude
     
     r[0] += np.random.normal(
         0,
@@ -231,6 +332,7 @@ def gnss_reciever_simulator(
     )
     
     gnss_reciever.mesurement = np.concatenate((r, v))
+    
     return True
 
 def EKF_transition_matrix_func(r: np.ndarray, dt: float) -> np.ndarray:    
@@ -404,7 +506,7 @@ def create_od_results(
     rz_fig.tight_layout()
     rz_fig.savefig("figures/od_EKF_radial_error.png")
     
-    plt.show() 
+    # plt.show() 
     return
 
 def sun_sensor_simulator(
@@ -434,6 +536,7 @@ def star_tracker_simulator(
     v: np.ndarray
 ) -> bool:
     """Simulates the star tracker on a satellite"""
+    # TODO
     pass
 
 def calculate_rms(
@@ -500,12 +603,37 @@ def mapping_budget(r_eci, r_true, v_true, euler_truths, euler_estimate):
     nadir_error = delta_elevation * D / np.sin(elevation_rad)
 
 
-
-
-
-
     data = [azimuth_error, nadir_error, intrack_error, crosstrack_error, radial_error]
 
     rms = calculate_rms(data)
 
-    return rms
+    # return rms
+    return intrack_error, crosstrack_error, radial_error
+
+def attitude_NLLS_algo_function(
+    time: float,
+    nlls: sat.SatelliteAlgorithm,
+    satellite: sat.RealTimeSatellite,
+    sensors: dict[str, sensor.SatelliteSensor],
+    logger: util.DictLogger = None
+) -> None:
+    # nlls.algorithm == None
+    # returns None if star tracker not in sensors dictionary
+    star_tracker = sensors.get("star_tracker", None)
+    sun_sensor = sensors.get("sun_sensor", None)
+    
+    # One way
+    # star_tracker_attitude = None
+    # sun_sensor_attitude = None
+    
+    if star_tracker is not None:
+        # do start tracker stuff
+        star_tracker_attitude = star_tracker.get_measurement()
+        pass
+    
+    if sun_sensor is not None:
+        # do sun sensor stuff
+        sun_sensor_attitude = sun_sensor.get_measurement()
+        pass
+    
+    pass

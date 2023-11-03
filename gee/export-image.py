@@ -4,15 +4,46 @@ import rasterio
 import matplotlib.pyplot as plt
 
 
+def mask_s2_clouds(image):
+  """Masks clouds in a Sentinel-2 image using the QA band.
+
+  Args:
+      image (ee.Image): A Sentinel-2 image.
+
+  Returns:
+      ee.Image: A cloud-masked Sentinel-2 image.
+  """
+  qa = image.select('QA60')
+
+  # Bits 10 and 11 are clouds and cirrus, respectively.
+  cloud_bit_mask = 1 << 10
+  cirrus_bit_mask = 1 << 11
+
+  # Both flags should be set to zero, indicating clear conditions.
+  mask = (
+      qa.bitwiseAnd(cloud_bit_mask)
+      .eq(0)
+      .And(qa.bitwiseAnd(cirrus_bit_mask).eq(0))
+  )
+
+  return image.updateMask(mask).divide(10000)
+
+
+def calculate_ndvi(image):
+    # Calculates the NDVI index, which is a function of both the NIR and RED bands
+    ndvi = image.normalizedDifference(['B8', 'B4']).rename('NDVI')
+    return image.addBands(ndvi)
+
+
 def initialise_credentials():
     # Initialise credentials
     service_account = "spacey@spacey-401400.iam.gserviceaccount.com"
-    key_path = "gee/key.json"    
+    key_path = "key.json"    
     credentials = ee.ServiceAccountCredentials(service_account, key_path)
     ee.Initialize(credentials=credentials)
 
 
-def export_image_to_tif_with_region(image, file_path, scale, lat, lon, band):
+def dataset_to_tif(image, file_path, scale, band, rectangle_bounds):
     """
     Export an image to a TIF file with a specified scale and region of interest using the geemap.ee_export_image() function.
 
@@ -28,69 +59,96 @@ def export_image_to_tif_with_region(image, file_path, scale, lat, lon, band):
     str: A message indicating the success or failure of the export process.
     """
     try:
-        roi = ee.Geometry.Point(lon, lat).buffer(100)  # Adjust buffer size as needed
+        roi = ee.Geometry.Rectangle(rectangle_bounds) # Example region coordinates
         image = image.select(band)
-        geemap.ee_export_image(image, filename=file_path, scale=scale, crs='EPSG:4326', region=roi)
-        return f"Image exported successfully to {file_path}"
+        geemap.ee_export_image(image, filename=file_path, scale=scale, crs='EPSG:4326', region=roi, file_per_band=False)
+        print(f"Image exported successfully to {file_path}")
     except Exception as e:
-        return f"An error occurred: {e}"
+        print(f"An error occurred: {e}")
     
 
 
-def save_to_png(file_path):
-    with rasterio.open(file_path) as src:
-        # Read the image as a numpy array
-        img = src.read(1)  # Replace '1' with the band you want to visualize
-
-        # Get the spatial transform (geotransform)
-        transform = src.transform
-
-        # Get the spatial extent (bounding box)
-        extent = [transform[2], transform[2] + transform[0] * src.width,
-                transform[5] + transform[4] * src.height, transform[5]]
+def tif_to_png(file_paths, i):
 
         # Create a figure and plot the image
         fig, ax = plt.subplots(figsize=(10, 10))
-        im = ax.imshow(img, extent=extent)
+
+        for i, file_path in enumerate(file_paths):
+            with rasterio.open(file_path) as src:
+                img = src.read(2)  # Replace '1' with the band you want to visualize
+                transform = src.transform
+                extent = [transform[2], transform[2] + transform[0] * src.width,
+                        transform[5] + transform[4] * src.height, transform[5]]
+
+                ax.imshow(img, extent=extent, alpha=0.5)
 
         # Add a colorbar
-        cbar = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-        cbar.set_label('Value')
+        # cbar = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+        # cbar.set_label('Value')
 
         # Set axis labels
         ax.set_xlabel('Longitude')
         ax.set_ylabel('Latitude')
 
+        # Limits of NSW
+        ax.set_xlim(141.0000, 153.6372)
+        ax.set_ylim(-37.5050, -28.1770)
+
         # Show the plot
         print("Plot saved!")
-        plt.savefig('figures/sydney.png')
-        plt.show()
+        plt.savefig(f'../figures/dataset_GEE_export_{i+1}.png')
 
 
 def main():
 
     initialise_credentials()
 
-    # Example usage
-    # Load a Landsat 8 image collection and filter by date and location
-    collection = ee.ImageCollection('LANDSAT/LC08/C02/T1_L2').filterDate('2022-01-01', '2022-01-31')
+    dataset = (
+        ee.ImageCollection('COPERNICUS/S2_SR')
+        .filterDate("2019-12-01", "2020-01-31")
+        # Pre-filter to get less cloudy granules.
+        .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
+        .map(mask_s2_clouds)
+        .map(calculate_ndvi) # Calculates the NDVI index
+    )
 
-    # Select the first image in the filtered collection
-    image = collection.first()
+    file_paths = []
 
-    # Specify the file path, scale, and region for export
-    file_path = 'gee/tifs/image.tif'
-    scale = 30
-    lat = -33.674  # Example latitude
-    lon = 150.9151  # Example longitude
-    band = ['SR_B4', 'SR_B3', 'SR_B2'] # Example band name
+    for i in range(0, 4):
 
+        rectangle_bounds = [141.115256 + 2*i, -28.356159 - 1*i, 147.315256 + 2*i, -34.956159 - 1*i]
 
-    # Export the image
-    export_result = export_image_to_tif_with_region(image, file_path, scale, lat, lon, band)
-    print(export_result)
+        # rectangle_bounds = [151.115256, -33.756159, 151.315256, -33.956159] # Centered at the Opera House, scale 60
+        # rectangle_bounds = [151.115256, -33.756159, 151.125256, -33.766159] # Very very pixellated
+        # rectangle_bounds = [150.115256, -32.756159, 152.315256, -34.956159] # Centered at the Opera House, scale 200
+        # rectangle_bounds = [141.0000, -29.1770, 153.6372, -37.5050] # Full NSW, supposedly. 
 
-    save_to_png(file_path)
+        # scale = (rectangle_bounds[2] - rectangle_bounds[0]) * 200
+
+        # squares = ee.Geometry.Point([rectangle_bounds[0], rectangle_bounds[1]]).buffer(345088).bounds()
+        # coverage = ee.Geometry.MultiPolygon([squares.coordinates()])
+
+        coverage = ee.Geometry.Rectangle(rectangle_bounds)
+
+        infrared_clipped = dataset.mean().clip(coverage)
+
+        # Specify the file path, scale, and region for export
+        file_path = f'tifs/image-{i+1}.tif'
+        scale = 800
+        '''
+        I have found that scale = 60 is the smallest it goes. 
+        Larger the scale, the more zoomed in, the smaller bits are downloaded.
+        Smaller the scale, the more zoomed out, the more bits are downloaded.
+
+        The scale represents the GSD. If scale = 20, the image has GSD of 20m
+        '''
+        band = ['B8', 'B4', 'B3'] # Bands for infrared
+
+        # tif --> png --> saved in files
+        dataset_to_tif(infrared_clipped, file_path, scale, band, rectangle_bounds)
+        file_paths.append(file_path)
+
+    tif_to_png(file_paths, i)
 
     return 0
 

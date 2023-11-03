@@ -95,8 +95,7 @@ def nadirMappingError(std_dev_x, std_dev_y, num_points):
     plt.xlabel('East Error (m)', fontsize=12)
     plt.ylabel('North Error (m)', fontsize=12)
     plt.grid(True, linestyle='--', alpha=0.5)
-    plt.show()
-    plt.savefig('nadir_error.png')
+    plt.savefig('../figures/rs_nadir_error.png')
 
 
 def swathEdgeMappingError(std_dev_x, std_dev_y, num_points):
@@ -125,8 +124,7 @@ def swathEdgeMappingError(std_dev_x, std_dev_y, num_points):
     plt.xlabel('East Error (m)', fontsize=12)
     plt.ylabel('North Error (m)', fontsize=12)
     plt.grid(True, linestyle='--', alpha=0.5)
-    plt.show()
-    plt.savefig('swath_error.png')
+    plt.savefig('../figures/rs_swath_error.png')
 
 
 def singlePointError(std_dev, size):

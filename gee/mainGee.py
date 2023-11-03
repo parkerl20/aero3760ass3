@@ -47,8 +47,8 @@ def mainGee(results):
     # Map = functions.fires()
     # Map = functions.S2A_NDVI("2019-12-01", "2020-01-31")
     Map = functions.S2A_coverage("2019-12-01", "2020-01-31", lon_lat, circle_radius=345088) # Radius corresponding to a 6.2 degree swathe width
-    # Map = functions.S2A_coverage("2019-12-01", "2020-01-31", lon_lat, circle_radius=20000) # Radius corresponding to a 6.2 degree swathe width
-    # Map = functions.plot_red_points(lon_lat, circle_radius=10)
+    # Map = functions.plot_red_points(lon_lat, circle_radius=10) # TODO: Replace circle_radius with mapping error radius
+    # Map = functions.plot_one_swath() # TODO: Place in for loop for spatiotemporal coverage
 
     # Create map
     # functions.create_map(Map, "NSW Infrared")

@@ -56,7 +56,7 @@ class SystemPlotter():
         
         # Plot orbits
         for orbit in self.system.orbits:
-            r, _, _ = orbit.propagate(t, t_start, use_km, coord_frame, max_step=20)
+            r, _, _, _ = orbit.propagate(t, t_start, use_km, coord_frame, max_step=20)
             system_ax.plot(r[0], r[1], color=orbit.body.colour, label=orbit.body.name)
         
         # Plot formatting
@@ -96,7 +96,7 @@ class SystemPlotter():
         
         # Plot orbits
         for orbit in self.system.orbits:
-            r, _, _ = orbit.propagate(
+            r, _, _, _ = orbit.propagate(
                 t,
                 t_start=t_start,
                 use_km=use_km,
@@ -165,7 +165,7 @@ class SystemPlotter():
             t_current = -1
             for i, orbit in enumerate(self.system.orbits):
                 for _ in range(animation_step):
-                    r, _, t = next(orbit)
+                    r, _, _, t = next(orbit)
                     t_current = t
                     points[i].append(r)
                     
@@ -245,7 +245,7 @@ class SystemPlotter():
 
         # Add orbits
         for orbit in self.system.orbits:
-            r_eci, _, t_eci = orbit.propagate(t, t_start=t_start)
+            r_eci, _, _, t_eci = orbit.propagate(t, t_start=t_start)
             lat, lng = [], []
             
             # Convert eci to lat long

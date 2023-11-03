@@ -606,13 +606,15 @@ def ECI_to_azimuth_error(
         tuple[float, float, float]: Azimuth error, Elevation error.
     """
 
-    # Errors from roll/pitch/yaw over time with Weightings
-    errors = euler_truths - euler_estimate 
+    # # Errors from roll/pitch/yaw over time with Weightings
+    # errors = euler_truths - euler_estimate 
 
-    # Pitch = elevation, yaw = azimuth
+    # # Pitch = elevation, yaw = azimuth
 
-    delta_azimuth = errors[2]
-    delta_elevation = errors[1]
+    # delta_azimuth = errors[2]
+    # delta_elevation = errors[1]
 
-    return delta_azimuth, delta_elevation
+    # return delta_azimuth, delta_elevation
+
+    return 0, 0
 

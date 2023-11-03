@@ -80,7 +80,7 @@ class OrbitObservatory():
                 visibilty_period (`list[tuple[datetime]]`): A list of tuples of the visibility periods
         """
         # TODO: In future can observe from a starting datetime object
-        r, _, t = orbit.propagate(
+        r, _, _, t = orbit.propagate(
             t,
             use_km=False,
             t_start=t_start,
