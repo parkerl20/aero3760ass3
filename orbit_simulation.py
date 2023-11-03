@@ -50,15 +50,15 @@ def orbit_simulation(
     
     propagation_time = satellite.period
     
-    # Add attitude state
-    satellite.init_v_eci = np.concatenate(
-        satellite.init_v_eci.flatten(),
-        np.array([1, 0, 0.045, 0.015])
-    )
+    # # Add attitude state
+    # satellite.init_v_eci = np.concatenate(
+    #     satellite.init_v_eci.flatten(),
+    #     np.array([1, 0, 0.045, 0.015]) # Quaternions of Euler Angles (10, 30, -45)
+    # )
     
-    satellite.init_v_eci = satellite.init_v_eci.reshape(-1, 1)
-    satellite.reset()
-    satellite.set_dynamics(orbit_dynamics)
+    # satellite.init_v_eci = satellite.init_v_eci.reshape(-1, 1)
+    # satellite.reset()
+    # satellite.set_dynamics(orbit_dynamics)
     
     
     # ---------------- Mount sensors to satellite

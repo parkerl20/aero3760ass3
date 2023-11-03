@@ -32,8 +32,7 @@ def main_lat_lon():
         ax.set_ylabel('Latitude')
 
         # Show the plot
-        plt.show()
-        plt.savefig('data_accuracy_plot.png')
+        plt.savefig('../figures/dataset_data_accuracy_plot.png')
 
 if __name__ == "__main__":
    main_lat_lon()
