@@ -54,10 +54,10 @@ def orbit_simulation(
     
     propagation_time = satellite.period
     
-    # Add attitude state
-    # satellite.init_v_eci = np.append(
+    # # Add attitude state
+    # satellite.init_v_eci = np.concatenate(
     #     satellite.init_v_eci.flatten(),
-    #     np.array([1, 0, 0.045, 0.015])
+    #     np.array([1, 0, 0.045, 0.015]) # Quaternions of Euler Angles (10, 30, -45)
     # )
     
     # satellite.init_v_eci = satellite.init_v_eci.reshape(-1, 1)
@@ -474,7 +474,7 @@ def create_od_results(
     rz_fig.tight_layout()
     rz_fig.savefig("figures/od_EKF_radial_error.png")
     
-    plt.show() 
+    # plt.show() 
     return
 
 def sun_sensor_simulator(
