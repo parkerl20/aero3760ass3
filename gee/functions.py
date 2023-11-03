@@ -238,6 +238,57 @@ def S2A_coverage(start_date: str, end_date: str, lon_lat, circle_radius):
 
     return Map
 
+
+def plot_one_swath(start_date: str, end_date: str, lon_lat, circle_radius):
+
+    # Sentinel-2A satellite
+    dataset = (
+        ee.ImageCollection('COPERNICUS/S2_SR')
+        .filterDate(start_date, end_date)
+        # Pre-filter to get less cloudy granules.
+        .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
+        .map(mask_s2_clouds)
+        .map(calculate_ndvi) # Calculates the NDVI index
+    )
+
+    # Red for alternate plotting
+    infrared_vis = {
+        'min': 0.0,
+        'max': 0.3,
+        'bands': ['B8', 'B4', 'B3']
+    }
+
+    # Map initialisation
+    Map = geemap.Map() 
+    Map.set_center(146.9211, -31.2532, 6) # Center of nsw
+
+    squares = ee.Geometry.Point(lon_lat[500]).buffer(circle_radius).bounds()
+    coverage = ee.Geometry.MultiPolygon([squares.coordinates()])
+
+    # Extract the bounds
+    bounds = squares.bounds().getInfo()['coordinates'][0]
+
+    # Print the bounds
+    print("Latitude-Longitude Bounds of the Square:")
+    for point in bounds:
+        print("Latitude:", point[1], ", Longitude:", point[0])
+
+    # Define a region of interest using ee.Geometry.Rectangle
+    roi = ee.Geometry.Rectangle([[bounds[0][0], bounds[0][1]], [bounds[2][0], bounds[2][1]]])
+
+    # Add the region of interest to the map
+    Map.addLayer(roi, {}, 'ROI')
+
+    # coverage = multipoint.buffer(circle_radius)
+    # mean_ndvi_clipped = mean_ndvi.clip(coverage)
+    infrared_clipped = dataset.mean().clip(coverage)
+    # Map.add_ee_layer(mean_ndvi_clipped, ndvi_vis, "NDVI")
+    Map.add_ee_layer(infrared_clipped, infrared_vis, "Coverage")
+
+    return Map
+
+
+
 def elevation_5m():
     # Get the geometry of New South Wales
     nsw = ee.FeatureCollection("FAO/GAUL/2015/level1").filter(

@@ -404,7 +404,7 @@ def create_od_results(
     rz_fig.tight_layout()
     rz_fig.savefig("figures/od_EKF_radial_error.png")
     
-    plt.show() 
+    # plt.show() 
     return
 
 def sun_sensor_simulator(
