@@ -110,7 +110,12 @@ def main():
         .map(calculate_ndvi) # Calculates the NDVI index
     )
 
-    rectangle_bounds = [151.115256, -33.756159, 151.315256, -33.956159]
+    # rectangle_bounds = [151.115256, -33.756159, 151.315256, -33.956159] # Centered at the Opera House, scale 60
+    # rectangle_bounds = [151.115256, -33.756159, 151.125256, -33.766159] # Very very pixellated
+    rectangle_bounds = [150.115256, -32.756159, 152.315256, -34.956159] # Centered at the Opera House, scale 200
+    # rectangle_bounds = [141.0000, -29.1770, 153.6372, -37.5050] # Full NSW
+
+    scale = (rectangle_bounds[2] - rectangle_bounds[0]) * 300
 
     squares = ee.Geometry.Point([rectangle_bounds[0], rectangle_bounds[1]]).buffer(345088).bounds()
     coverage = ee.Geometry.MultiPolygon([squares.coordinates()])
@@ -119,7 +124,7 @@ def main():
 
     # Specify the file path, scale, and region for export
     file_path = 'tifs/image.tif'
-    scale = 60
+    # scale = 200
     '''
     I have found that scale = 60 is the smallest it goes. 
     Larger the scale, the more zoomed in, the smaller bits are downloaded.
