@@ -242,14 +242,20 @@ class RealTimeSatellite(orb.Orbit):
         
         r = solution.y[0:3]
         v = solution.y[3:6]  
-        attitude = solution.y[6:10]     
+        # print("v:", v)
+        att = solution.y[6:10]  
+        # print("attitude:", attitude)   
         t = solution.t + self.current_time
         
         # Simulate sensor measurements
         for i in range(len(t) - 1):
             position = r[:, i].flatten()
             velocity = v[:, i].flatten()
-            attitude = attitude[:, i].flatten()
+            print("vel:", velocity)
+            # print("size of v:", v.shape)
+            attitude = att[:, i] # No need to flatten!
+            print("att:", attitude)
+            # print("size of att:", attitude.shape)
             time = t[i]
             
             self.current_r_eci = position
@@ -281,10 +287,10 @@ class RealTimeSatellite(orb.Orbit):
                     
         self.current_r_eci = r[:, -1].flatten()
         self.current_v_eci = v[:, -1].flatten()
-        self.current_attitude = attitude[:, -1].flatten()
+        self.current_attitude = att[:, -1]
         self.current_time = t[-1]
         
-        return r[:,-1], v[:,-1], attitude[-1], t[-1]
+        return r[:,-1], v[:,-1], att[:,-1], t[-1]
     
     def reset(self) -> None:
         """Resets the satellite to its initial state.

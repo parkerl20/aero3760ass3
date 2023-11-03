@@ -253,11 +253,29 @@ class Orbit():
         r_dot = v
         v_dot = -(mu / (r_mag ** 3)) * r      # Two body equation
         
-        # TODO: Attidude dynamics - flatten at end
-        att = state_vector[6:10]       # 1D array length 4
-        att_dot = np.array([[0, 0 ,0 ,0]]).T
-        att_dot = att_dot.flatten()
+        # Added by Dan, Friday 6:14pm
 
+        # TODO: Attidude dynamics - flatten at end
+        # att = state_vector[6:10]       # 1D array length 4
+        # att_dot = np.array([[0, 0 ,0 ,0]]).T
+        # att_dot = att_dot.flatten()
+
+        # Added by Lucas, Saturday 9:35am
+        att = state_vector[6:10]     # Quaternion
+        
+        # Quaternion propagation
+        p = 0.0016
+        q = 0.0016
+        r = 0.0016
+
+        q_matrix = 0.5 * np.array([
+            [0, -p, -q, -r],
+            [p, 0, r, -q],
+            [q, -r, 0, p],
+            [r, q, -p, 0]])
+        
+        att_dot = (q_matrix @ att)
+        # print("att_dot:", att_dot)
         return [*r_dot, *v_dot, *att_dot]
     
     def __propagate(

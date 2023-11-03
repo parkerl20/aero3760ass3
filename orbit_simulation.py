@@ -283,7 +283,7 @@ def orbit_dynamics(
         [q, -r, 0, p],
         [r, q, -p, 0]])
     
-    q_dot = (0.5 * q_matrix @ q0).flatten()
+    q_dot = (q_matrix @ q0).flatten()
     
     return [*r_dot, *v_dot, *q_dot]
     
@@ -603,15 +603,12 @@ def mapping_budget(r_eci, r_true, v_true, euler_truths, euler_estimate):
     nadir_error = delta_elevation * D / np.sin(elevation_rad)
 
 
-
-
-
-
     data = [azimuth_error, nadir_error, intrack_error, crosstrack_error, radial_error]
 
     rms = calculate_rms(data)
 
-    return rms
+    # return rms
+    return intrack_error, crosstrack_error, radial_error
 
 def attitude_NLLS_algo_function(
     time: float,
