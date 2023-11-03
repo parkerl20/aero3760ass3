@@ -43,7 +43,7 @@ def initialise_credentials():
     ee.Initialize(credentials=credentials)
 
 
-def export_image_to_tif_with_region(image, file_path, scale, band, rectangle_bounds):
+def dataset_to_tif(image, file_path, scale, band, rectangle_bounds):
     """
     Export an image to a TIF file with a specified scale and region of interest using the geemap.ee_export_image() function.
 
@@ -62,13 +62,13 @@ def export_image_to_tif_with_region(image, file_path, scale, band, rectangle_bou
         roi = ee.Geometry.Rectangle(rectangle_bounds) # Example region coordinates
         image = image.select(band)
         geemap.ee_export_image(image, filename=file_path, scale=scale, crs='EPSG:4326', region=roi, file_per_band=False)
-        print("Image exported successfully to {file_path}")
+        print(f"Image exported successfully to {file_path}")
     except Exception as e:
         print(f"An error occurred: {e}")
     
 
 
-def save_to_png(file_path):
+def tif_to_png(file_path, i):
     with rasterio.open(file_path) as src:
         # Read the image as a numpy array
         img = src.read(2)  # Replace '1' with the band you want to visualize
@@ -92,9 +92,13 @@ def save_to_png(file_path):
         ax.set_xlabel('Longitude')
         ax.set_ylabel('Latitude')
 
+        # Limits of NSW
+        ax.set_xlim(141.0000, 153.6372)
+        ax.set_ylim(-37.5050, -28.1770)
+
         # Show the plot
         print("Plot saved!")
-        plt.savefig('../figures/dataset_GEE_export.png')
+        plt.savefig(f'../figures/dataset_GEE_export_{i+1}.png')
 
 
 def main():
@@ -110,31 +114,39 @@ def main():
         .map(calculate_ndvi) # Calculates the NDVI index
     )
 
-    # rectangle_bounds = [151.115256, -33.756159, 151.315256, -33.956159] # Centered at the Opera House, scale 60
-    # rectangle_bounds = [151.115256, -33.756159, 151.125256, -33.766159] # Very very pixellated
-    rectangle_bounds = [150.115256, -32.756159, 152.315256, -34.956159] # Centered at the Opera House, scale 200
-    # rectangle_bounds = [141.0000, -29.1770, 153.6372, -37.5050] # Full NSW
+    for i in range(0, 1):
 
-    scale = (rectangle_bounds[2] - rectangle_bounds[0]) * 300
+        rectangle_bounds = [141.115256 + 2*i, -28.356159 - 1*i, 147.315256 + 2*i, -34.956159 - 1*i]
 
-    squares = ee.Geometry.Point([rectangle_bounds[0], rectangle_bounds[1]]).buffer(345088).bounds()
-    coverage = ee.Geometry.MultiPolygon([squares.coordinates()])
+        # rectangle_bounds = [151.115256, -33.756159, 151.315256, -33.956159] # Centered at the Opera House, scale 60
+        # rectangle_bounds = [151.115256, -33.756159, 151.125256, -33.766159] # Very very pixellated
+        # rectangle_bounds = [150.115256, -32.756159, 152.315256, -34.956159] # Centered at the Opera House, scale 200
+        # rectangle_bounds = [141.0000, -29.1770, 153.6372, -37.5050] # Full NSW, supposedly. 
 
-    infrared_clipped = dataset.mean().clip(coverage)
+        # scale = (rectangle_bounds[2] - rectangle_bounds[0]) * 200
 
-    # Specify the file path, scale, and region for export
-    file_path = 'tifs/image.tif'
-    # scale = 200
-    '''
-    I have found that scale = 60 is the smallest it goes. 
-    Larger the scale, the more zoomed in, the smaller bits are downloaded.
-    Smaller the scale, the more zoomed out, the more bits are downloaded.
-    '''
-    band = ['B8', 'B4', 'B3'] # Bands for infrared
+        # squares = ee.Geometry.Point([rectangle_bounds[0], rectangle_bounds[1]]).buffer(345088).bounds()
+        # coverage = ee.Geometry.MultiPolygon([squares.coordinates()])
 
-    # tif --> png --> saved in files
-    export_image_to_tif_with_region(infrared_clipped, file_path, scale, band, rectangle_bounds)
-    save_to_png(file_path)
+        coverage = ee.Geometry.Rectangle(rectangle_bounds)
+
+        infrared_clipped = dataset.mean().clip(coverage)
+
+        # Specify the file path, scale, and region for export
+        file_path = f'tifs/image-{i+1}.tif'
+        scale = 800
+        '''
+        I have found that scale = 60 is the smallest it goes. 
+        Larger the scale, the more zoomed in, the smaller bits are downloaded.
+        Smaller the scale, the more zoomed out, the more bits are downloaded.
+
+        The scale represents the GSD. If scale = 20, the image has GSD of 20m
+        '''
+        band = ['B8', 'B4', 'B3'] # Bands for infrared
+
+        # tif --> png --> saved in files
+        dataset_to_tif(infrared_clipped, file_path, scale, band, rectangle_bounds)
+        tif_to_png(file_path, i)
 
     return 0
 
