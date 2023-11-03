@@ -4,6 +4,8 @@ import webbrowser
 import geemap
 import csv
 from spacesim import orbital_transforms as ot
+import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 def initialise_credentials():
     # Initialise credentials
