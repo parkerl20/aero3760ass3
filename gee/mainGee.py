@@ -46,7 +46,7 @@ def mainGee(results, mapping_error, run_sim):
         # Latitude and longitude conversion
         lon_lat = functions.eci_to_llh_nsw(r_obv, t_obv, epoch, num_points=0)
         print("lon_lat:", lon_lat)
-        spatiotemporal.st_main(lon_lat)
+        spatiotemporal.generate_gif(lon_lat)
         lon_lat_interpolated = functions.eci_to_llh_nsw(r_obv, t_obv, epoch, num_points=500)
 
         # Sentinel-2A satellite
