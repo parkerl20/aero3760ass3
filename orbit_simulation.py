@@ -54,7 +54,7 @@ def orbit_simulation(
     
     propagation_time = satellite.period
     
-    # # Add attitude state
+    # Add attitude state
     # satellite.init_v_eci = np.concatenate(
     #     satellite.init_v_eci.flatten(),
     #     np.array([1, 0, 0.045, 0.015]) # Quaternions of Euler Angles (10, 30, -45)
@@ -123,6 +123,7 @@ def orbit_simulation(
     # Simulate the satellite
     r_residuals = [[], [], []]
     v_residuals = [[], [], []]
+    att_residuals = [[], [], [], []]
     raw_r = [[], [], []]
     time_steps = []    
     gnss_times = []
@@ -162,6 +163,7 @@ def orbit_simulation(
         #     v_true
         # )
         
+        # TODO: Add when attitude is done
         in_track, cross_track, radial = mapping_budget(
             ekf_r,
             r_true,
@@ -180,12 +182,17 @@ def orbit_simulation(
         
         time_steps.append(t)
         
-        # MApping accuracies
+        # Mapping accuracies
         in_track, cross_track, radial = ot.ECI_to_mapping_error(
             ekf_r,
             r_true,
             v_true
         )
+        # print("Current attitude: ", satellite.current_attitude)
+        att_residuals[0].append(satellite.current_attitude[0])
+        att_residuals[1].append(satellite.current_attitude[1])
+        att_residuals[2].append(satellite.current_attitude[2])
+        att_residuals[3].append(satellite.current_attitude[3])
         
         R_H = np.linalg.norm(ekf_r) - const.R_EARTH
         R_T = const.R_EARTH
@@ -216,6 +223,11 @@ def orbit_simulation(
         r_residuals,
         v_residuals,
         np.array(satellite.algorithms["OD EKF"].logger.get_log("r_residual")).T,
+        time_steps
+    )
+
+    create_att_results(
+        att_residuals,
         time_steps
     )
     
@@ -440,6 +452,65 @@ def log_EKF_algo(
     logger.get_log("v_residual").append(v - v_true)
     
     return
+
+def create_att_results( # -----------------------------------------------------------------------------------------------------
+    att_residuals: list[list[float]],
+    time_steps: list[float]
+) -> None:
+    """
+    """
+    startup_plotting()
+    print("Current Attitude:", att_residuals)
+
+    print("Size of time:", len(time_steps))
+    print("Size of att_residuals[0]:", len(att_residuals[0]))
+
+    attw_fig, attw_ax = plt.subplots()
+    attw_ax.plot(time_steps[1:], att_residuals[0][1:])
+    
+    attw_ax.set_title("Quaternion[0]")
+    attw_ax.set_xlabel("Time (s)")
+    attw_ax.set_ylabel("Quaternion Angle (units)")
+    
+    attw_fig.tight_layout()
+    
+    attw_fig.savefig("figures/at_quaternion[0].png")
+
+
+    attx_fig, attx_ax = plt.subplots()
+    attx_ax.plot(time_steps[1:], att_residuals[1][1:])
+    
+    attx_ax.set_title("Quaternion[1]")
+    attx_ax.set_xlabel("Time (s)")
+    attx_ax.set_ylabel("Quaternion Angle (units)")
+    
+    attx_fig.tight_layout()
+    
+    attx_fig.savefig("figures/at_quaternion[1].png")
+
+
+    atty_fig, atty_ax = plt.subplots()
+    atty_ax.plot(time_steps[1:], att_residuals[2][1:])
+    
+    atty_ax.set_title("Quaternion[2]")
+    atty_ax.set_xlabel("Time (s)")
+    atty_ax.set_ylabel("Quaternion Angle (units)")
+    
+    atty_fig.tight_layout()
+    
+    atty_fig.savefig("figures/at_quaternion[2].png")
+
+
+    attz_fig, attz_ax = plt.subplots()
+    attz_ax.plot(time_steps[1:], att_residuals[3][1:])
+    
+    attz_ax.set_title("Quaternion[3]")
+    attz_ax.set_xlabel("Time (s)")
+    attz_ax.set_ylabel("Quaternion Angle (units)")
+    
+    attz_fig.tight_layout()
+    
+    attz_fig.savefig("figures/at_quaternion[3].png")
 
 def create_od_results(
     r_residuals: list[list[float]],

@@ -83,7 +83,7 @@ class Orbit():
             theta
         )
         
-        self.init_attitude =np.array([[0, 0 ,0 ,0]]).T
+        self.init_attitude =np.array([[1, 0, 0.045, 0.015]]).T
         
         # Calculated instance variables
         self.period: float = 2 * math.pi * (mu / a**3) ** (-1/2)

@@ -251,10 +251,10 @@ class RealTimeSatellite(orb.Orbit):
         for i in range(len(t) - 1):
             position = r[:, i].flatten()
             velocity = v[:, i].flatten()
-            print("vel:", velocity)
+            # print("vel:", velocity)
             # print("size of v:", v.shape)
             attitude = att[:, i] # No need to flatten!
-            print("att:", attitude)
+            # print("att:", attitude)
             # print("size of att:", attitude.shape)
             time = t[i]
             
@@ -297,6 +297,7 @@ class RealTimeSatellite(orb.Orbit):
         """
         self.current_r_eci = self.init_r_eci
         self.current_v_eci = self.init_v_eci
+        self.current_attitude = self.init_attitude
         self.current_time = 0
         
         for sensor in self.sensors.values():
