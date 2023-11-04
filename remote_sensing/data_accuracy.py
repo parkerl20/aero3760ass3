@@ -118,7 +118,7 @@ def main():
     roll_residual_std = 0.01616645
     pitch_residual_std = 0.0134385
     yaw_residual_std = 0.020882695
-    cross_track_error = 1
+    cross_track_error = 1       # cross track std dev in m
 
 
     nadirMappingError(pitch_residual_std, yaw_residual_std, observations)

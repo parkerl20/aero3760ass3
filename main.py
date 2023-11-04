@@ -10,6 +10,7 @@ from orbit_simulation import orbit_simulation
 from gee.mainGee import mainGee
 import datetime as dt
 from attitude.attitude_nlls import run_attitude_determ
+from remote_sensing import data_accuracy
 
 
 def main():
@@ -51,6 +52,8 @@ def satellite_simulation(run_sim):
     
     mapping_error = 2 # From attitude
     mainGee(results, mapping_error, run_sim)
+    
+    dat
 
 if __name__ == "__main__":
     main()
