@@ -182,6 +182,12 @@ def run_attitude_determ(length_flag):
             if 2: simulation will run long version (10000 seconds)
             if 3: simulation will run extra long version (a bit excessive but 60000 seconds)
             else will run medium (1000 seconds)
+
+    Outputs:    
+        final_estimates: euler angle attitude estimates : yaw, pitch, roll
+        residuals: euler angle residuals from true : yaw, pitch, roll
+        convergence: vector of length of final_estimates: 1 means solution did not converge
+                    (this data is an outlier)
     """
     time_start = 0
     # end of simulation
@@ -213,8 +219,11 @@ def run_attitude_determ(length_flag):
 
     # Initialise arrays to store data from nlls
     final_estimates = np.zeros((len(times), 3))
+    residuals = np.zeros((len(times), 3))
     iterations = []
     dops_time = np.zeros((len(times), 4))
+    convergence = []
+    
 
 
     for t in range(len(times)):
@@ -286,6 +295,7 @@ def run_attitude_determ(length_flag):
         if not_converged:
             dy_flag = -1
             att_opt, dops, att_store, i, datts, not_converged = nlls_quaternion_weights(observed_vectors, ref_vectors, att_init, dy_flag)
+        convergence.append(not_converged)
         dops_euler = euler2quat(dops)
         final_estimates[t-1] = (quat2euler(att_opt))
         iterations.append(i)
@@ -301,6 +311,9 @@ def run_attitude_determ(length_flag):
 
         # get actual error for 
         print("Final attitude estimation", quat2euler(att_opt))
+
+    residuals = eulers-final_estimates
+    convergence = np.array(convergence)
 
     plt.figure()
     plt.plot(range(len(att_store)), np.full((len(att_store)),eulers[-1,0]), label = "True Yaw")
@@ -321,7 +334,7 @@ def run_attitude_determ(length_flag):
     plt.ylabel("Value")
     plt.savefig("datt_converging")
     
-    plot_attitude_propagation(times, eulers-final_estimates, "residuals")
+    plot_attitude_propagation(times, residuals, "residuals")
     plot_attitude_propagation(times, final_estimates, "determined_attitude")
 
     plt.figure()
@@ -331,12 +344,14 @@ def run_attitude_determ(length_flag):
     plt.xlabel("Timesteps")
     plt.savefig("iterations_to_converge")
 
+    return final_estimates, residuals, convergence
+
 
 
 def main():
     # length_flag = 1 for short version, length_flag = 2 for long version
-    run_attitude_determ(length_flag = 1)
-    # run_attitude_determ(length_flag = 2)
+    # run_attitude_determ(length_flag = 1)
+    final_estimates, residuals, convergence = run_attitude_determ(length_flag = 2)
 
 
 if __name__ == '__main__':
