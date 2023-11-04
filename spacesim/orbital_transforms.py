@@ -616,5 +616,5 @@ def ECI_to_azimuth_error(
 
     # return delta_azimuth, delta_elevation
 
-    return 0.2, 0.5
+    return 0.0001, 0.0002
 

@@ -127,7 +127,7 @@ def orbit_simulation(
     raw_r = [[], [], []]
     time_steps = []    
     gnss_times = []
-    mappings = [[], [], [], [], []]
+    mappings = [[], [], [], [], [], []]
     
     
     for r_true, v_true, attitude_true, t in satellite:
@@ -164,7 +164,7 @@ def orbit_simulation(
         # )
         
         # TODO: Add when attitude is done
-        in_track, cross_track, radial, azimuth, nadir, = mapping_budget(
+        in_track, cross_track, radial, azimuth, nadir, rms = mapping_budget(
             ekf_r,
             r_true,
             v_true,
@@ -193,6 +193,7 @@ def orbit_simulation(
         mappings[2].append(radial)
         mappings[3].append(azimuth)
         mappings[4].append(nadir)
+        mappings[5].append(rms)
         
         
     create_od_results(
@@ -238,25 +239,35 @@ def orbit_simulation(
     radial_fig.tight_layout()
     radial_fig.savefig("figures/od_mapping_radial.png")
 
-    in_track_fig, in_track_ax = plt.subplots()
-    in_track_ax.plot(time_steps, mappings[3])
+    azimuth_fig, azimuth_ax = plt.subplots()
+    azimuth_ax.plot(time_steps, mappings[3])
     
-    in_track_ax.set_title("Azimuth Mapping Error")
-    in_track_ax.set_xlabel("Time (s)")
-    in_track_ax.set_ylabel("Error (m)")
+    azimuth_ax.set_title("Azimuth Mapping Error")
+    azimuth_ax.set_xlabel("Time (s)")
+    azimuth_ax.set_ylabel("Error (m)")
     
-    in_track_fig.tight_layout()
-    in_track_fig.savefig("figures/att_mapping_azimuth.png")
+    azimuth_fig.tight_layout()
+    azimuth_fig.savefig("figures/att_mapping_azimuth.png")
 
-    in_track_fig, in_track_ax = plt.subplots()
-    in_track_ax.plot(time_steps, mappings[4])
+    nadir_fig, nadir_ax = plt.subplots()
+    nadir_ax.plot(time_steps, mappings[4])
     
-    in_track_ax.set_title("Nadir Mapping Error")
-    in_track_ax.set_xlabel("Time (s)")
-    in_track_ax.set_ylabel("Error (m)")
+    nadir_ax.set_title("Nadir Mapping Error")
+    nadir_ax.set_xlabel("Time (s)")
+    nadir_ax.set_ylabel("Error (m)")
     
-    in_track_fig.tight_layout()
-    in_track_fig.savefig("figures/att_mapping_nadir.png")
+    nadir_fig.tight_layout()
+    nadir_fig.savefig("figures/att_mapping_nadir.png")
+
+    rms_fig, rms_ax = plt.subplots()
+    rms_ax.plot(time_steps, mappings[5])
+    
+    rms_ax.set_title("RMS Mapping Error")
+    rms_ax.set_xlabel("Time (s)")
+    rms_ax.set_ylabel("Error (m)")
+    
+    rms_fig.tight_layout()
+    rms_fig.savefig("figures/att_mapping_rms.png")
     
     plt.show()
     
@@ -666,23 +677,17 @@ def mapping_budget(
     crosstrack_error = delta_C * R_T / R_S * np.cos(G_mapping)
     radial_error = delta_R * np.sin(eta_rad) / np.sin(elevation_rad)
 
-
-
-
     division = 0.0451649 # for elevation 60 deg (worst case)
-
     D = R_E * division
 
     azimuth_error = delta_azimuth * D * np.sin(eta_rad)
     nadir_error = delta_elevation * D / np.sin(elevation_rad)
 
-
     data = [azimuth_error, nadir_error, intrack_error, crosstrack_error, radial_error]
 
     rms = calculate_rms(data)
 
-    # return rms
-    return intrack_error, crosstrack_error, radial_error, azimuth_error, nadir_error
+    return intrack_error, crosstrack_error, radial_error, azimuth_error, nadir_error, rms
 
 def attitude_NLLS_algo_function(
     time: float,
