@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import mapping_error
+from . import mapping_error
 
 
 def calculateCameraFOV():
@@ -61,9 +61,11 @@ def nadirMappingError(std_dev_x, std_dev_y, num_points):
 
     # Calculate standard deviation
     std_dev = np.sqrt(east_errors ** 2 + north_errors ** 2)
+    
+    print("Nadir std dev: ", np.mean(std_dev))
 
-    # Create the plot
-    plt.figure(figsize=(8, 6))
+    # Create the plot    
+    fig = plt.figure(figsize=(8, 6))
     plt.scatter(east_errors, north_errors, c=std_dev, cmap='viridis', marker='o')
     plt.colorbar(label='Standard Deviation')
     plt.axhline(y=0, color='k', linestyle='--', linewidth=0.5)
@@ -72,7 +74,10 @@ def nadirMappingError(std_dev_x, std_dev_y, num_points):
     plt.xlabel('East Error (m)', fontsize=12)
     plt.ylabel('North Error (m)', fontsize=12)
     plt.grid(True, linestyle='--', alpha=0.5)
-    plt.savefig('../figures/rs_nadir_error.png')
+    fig.savefig('./figures/rs_nadir_error.png')
+    
+
+
 
 
 def swathEdgeMappingError(std_dev_x, std_dev_y, num_points):
@@ -90,6 +95,8 @@ def swathEdgeMappingError(std_dev_x, std_dev_y, num_points):
 
     # Calculate standard deviation
     std_dev = np.sqrt(east_errors ** 2 + north_errors ** 2)
+    
+    print("Swath edge std dev: ", np.mean(std_dev))
 
     # Create the plot
     plt.figure(figsize=(8, 6))
@@ -101,7 +108,7 @@ def swathEdgeMappingError(std_dev_x, std_dev_y, num_points):
     plt.xlabel('East Error (m)', fontsize=12)
     plt.ylabel('North Error (m)', fontsize=12)
     plt.grid(True, linestyle='--', alpha=0.5)
-    plt.savefig('../figures/rs_swath_error.png')
+    plt.savefig('./figures/rs_swath_error.png')
 
 
 
@@ -118,7 +125,7 @@ def main():
     roll_residual_std = 0.01616645
     pitch_residual_std = 0.0134385
     yaw_residual_std = 0.020882695
-    cross_track_error = 1       # cross track std dev in m
+    cross_track_error = 0.264
 
 
     nadirMappingError(pitch_residual_std, yaw_residual_std, observations)

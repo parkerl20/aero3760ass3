@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from pos_sun import *
-from attitude_propagation import *
-from attitude_transforms import *
+from .pos_sun import *
+from .attitude_propagation import *
+from .attitude_transforms import *
 '''
 NLLS for Attitude Determination
 '''

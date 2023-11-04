@@ -53,7 +53,7 @@ def satellite_simulation(run_sim):
     mapping_error = 2 # From attitude
     mainGee(results, mapping_error, run_sim)
     
-    dat
+    data_accuracy.main()
 
 if __name__ == "__main__":
     main()

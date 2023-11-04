@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
-import attitude_transforms
+from . import attitude_transforms
 
 '''
 

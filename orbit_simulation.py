@@ -81,8 +81,8 @@ def orbit_simulation(
     )
     
     satellite.attach_sensor(gnss_reciever)
-    satellite.attach_sensor(star_tracker)
-    satellite.attach_sensor(sun_sensor)
+    # satellite.attach_sensor(star_tracker)
+    # satellite.attach_sensor(sun_sensor)
     
     # ------------------ Add algorithms
     initial_state = np.concatenate(
@@ -207,6 +207,10 @@ def orbit_simulation(
     )
     
     # Plot mapping errors on seperate axes
+    print(f"In track mean: {np.mean(mappings[0])}\tstd: {np.std(mappings[0])}")
+    print(f"Cross track mean: {np.mean(mappings[1])}\tstd: {np.std(mappings[1])}")
+    print(f"Radial mean: {np.mean(mappings[2])}\tstd: {np.std(mappings[2])}")
+    
     in_track_fig, in_track_ax = plt.subplots()
     in_track_ax.plot(time_steps, mappings[0])
     
@@ -656,7 +660,7 @@ def mapping_budget(
     delta_azimuth, delta_elevation = ot.ECI_to_azimuth_error(att_true, att_estimate)
 
 
-    R_E = 6371  # km
+    R_E = const.R_EARTH     # m
     H = np.linalg.norm(r_eci) - R_E
     R_T = R_E
     R_S = R_E + H
