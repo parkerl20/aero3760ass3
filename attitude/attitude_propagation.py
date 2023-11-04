@@ -77,7 +77,7 @@ def plot_attitude_propagation(time, eulers, fig_name):
 def main():
 
     time_start = 0
-    one_period = 60000
+    one_period = 10000
 
     initial_euler = [10, 30, -45]
     initial_quat = attitude_transforms.euler2quat(initial_euler)
@@ -100,7 +100,7 @@ def main():
         # eulers[i] = attitude_transforms.quat2euler(attitude.y[:, i])
 
     print("\n\n")
-    plot_attitude_propagation(times, eulers)
+    plot_attitude_propagation(times, eulers, "real_att")
 
     return 0
 
