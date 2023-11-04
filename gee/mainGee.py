@@ -27,8 +27,10 @@ def mainGee(results, mapping_error, run_sim):
        in your browser.
     """
     if(run_sim == 0):
+        functions.show_map("Infrared")
+        functions.show_map("NDVI")
+        functions.show_map("Fires")
         functions.show_map("Mapping accuracy")
-        functions.show_map("S2A coverage")
     
     else:
         # Load in data
@@ -41,34 +43,27 @@ def mainGee(results, mapping_error, run_sim):
 
         # Latitude and longitude conversion
         # lon_lat = functions.eci_to_llh(r_obv, t_obv, epoch)
-        lon_lat = functions.eci_to_llh_nsw(r_obv, t_obv, epoch, num_points=500)
+        lon_lat = functions.eci_to_llh_nsw(r_obv, t_obv, epoch, num_points=0)
+        lon_lat_interpolated = functions.eci_to_llh_nsw(r_obv, t_obv, epoch, num_points=500)
 
         # Sentinel-2A satellite
-        # Map = functions.S2A("2019-12-01", "2020-01-31")
-        # Map = functions.fires()
-        # Map = functions.S2A_NDVI("2019-12-01", "2020-01-31")
         # Map = functions.S2A_coverage("2019-12-01", "2020-01-31", lon_lat, circle_radius=345088) # Radius corresponding to a 6.2 degree swathe width
-
-        Map = functions.mapping_accuracy("2019-12-01", "2020-01-31", lon_lat, mapping_error, circle_radius=100)
-        # Map = functions.plot_red_points(lon_lat, circle_radius=10) # TODO: Replace circle_radius with mapping error radius
-        # Map = functions.plot_one_swath() # TODO: Place in for loop for spatiotemporal coverage
+        Map_infra = functions.S2A_infrared("2019-12-01", "2020-01-31", lon_lat, circle_radius=345088)
+        Map_ndvi = functions.S2A_NDVI("2019-12-01", "2020-01-31", lon_lat, circle_radius=345088)
+        Map_fires = functions.fires()
+        Map = functions.mapping_accuracy("2019-12-01", "2020-01-31", lon_lat_interpolated, mapping_error, circle_radius=100)
 
         # Create map
-        # functions.create_map(Map, "NSW Infrared")
-        # functions.create_map(Map, "Fires")
-        # functions.create_map(Map, "NDVI")
-        # functions.create_map(Map, "S2A coverage")
+        functions.create_map(Map_fires, "Fires")
         functions.create_map(Map, "Mapping accuracy")
-        # functions.create_map(Map, "Red")
+        functions.create_map(Map_infra, "Infrared")
+        functions.create_map(Map_ndvi, "NDVI")
 
         # Show map
-        # functions.show_map("NSW Infrared")
-        # functions.show_map("Fires")
-        # functions.show_map("NDVI")
-        # functions.show_map("S2A coverage")
+        functions.show_map("Infrared")
+        functions.show_map("NDVI")
+        functions.show_map("Fires")
         functions.show_map("Mapping accuracy")
-        # functions.show_map("Red")
-
 
 
 if __name__ == "__main__":

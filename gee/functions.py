@@ -61,88 +61,15 @@ def mask_s2_clouds(image):
   return image.updateMask(mask).divide(10000)
 
 
-def initial_map():
-    # Set some points of interest
-    # Mackay, Qld
-    lat = -21.1434
-    lon = 149.1868
-
-    # Get URL for our image
-    Data_Set_Clearing = ee.ImageCollection("WRI/GFW/FORMA/raw_output_firms")
-
-    # Create an interactive map
-    # Map = folium.Map(center=[lat, lon], zoom_start=7)
-    Map = geemap.Map(center=[lat, lon], zoom=7)
-
-    # Define the dataset
-    dataset = ee.ImageCollection('WRI/GFW/FORMA/raw_output_firms')
-    dataset.filter(ee.Filter.date('2018-08-01', '2018-08-15'))
-
-    # Select the 'nday' band
-    percentageOfClearing = dataset.select('nday')
-
-    # Visualization parameters
-    visParams = {
-    'min': 0.0,
-    'max': 0.01
-    }
-
-    # Add layer to map
-    Map.addLayer(percentageOfClearing, visParams, 'Percentage of clearing')
-
-    return Map
-
-
-def S2A(start_date: str, end_date: str):
-    # Get the geometry of New South Wales
-    nsw = ee.FeatureCollection("FAO/GAUL/2015/level1").filter(
-            ee.Filter.eq('ADM1_NAME', 'New South Wales')
-    )
- 
-   # Sentinel-2A satellite
+def mapping_accuracy(start_date: str, end_date: str, lon_lat, mapping_error, circle_radius):
+    # Sentinel-2A satellite
     dataset = (
         ee.ImageCollection('COPERNICUS/S2_SR')
-        .filterBounds(nsw)
         .filterDate(start_date, end_date)
-        # Pre-filter to get less cloudy granules.
         .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
         .map(mask_s2_clouds)
+        .map(calculate_ndvi)  # Calculates the NDVI index
     )
-
-    # Visualisation parameter
-    visualization = {
-        'min': 0.0,
-        'max': 0.3,
-        'bands': ['B8', 'B4', 'B3'],
-    }
-
-    # Map initialisation
-    Map = geemap.Map() 
-    Map.set_center(146.9211, -31.2532, 6) # Center of nsw
-    Map.add_ee_layer(dataset.mean(), visualization, 'Infrared')
-
-    return Map
-
-
-def S2A_NDVI(start_date: str, end_date: str):
-    # Get the geometry of New South Wales
-    nsw = ee.FeatureCollection("FAO/GAUL/2015/level1").filter(
-            ee.Filter.eq('ADM1_NAME', 'New South Wales')
-    )
- 
-   # Sentinel-2A satellite
-    dataset = (
-        ee.ImageCollection('COPERNICUS/S2_SR')
-        .filterBounds(nsw)
-        .filterDate(start_date, end_date)
-        # Pre-filter to get less cloudy granules.
-        .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
-        .map(mask_s2_clouds)
-        .map(calculate_ndvi) # Calculates the NDVI index
-    )
-
-    # Selecting NDVI
-    mean_ndvi = dataset.mean().select('NDVI')
 
     # Visualisation parameter
     ndvi_vis = {
@@ -151,25 +78,30 @@ def S2A_NDVI(start_date: str, end_date: str):
         'palette': ['blue', 'white', 'green']
     }
 
+    # Red for alternate plotting
+    infrared_vis = {
+        'min': 0.0,
+        'max': 0.3,
+        'bands': ['B8', 'B4', 'B3']
+    }
+
     # Map initialisation
-    Map = geemap.Map() 
-    Map.set_center(146.9211, -31.2532, 6) # Center of nsw
-    Map.add_ee_layer(mean_ndvi, ndvi_vis, 'NDVI')
+    Map = geemap.Map()
+    Map.set_center(151.2727, -33.5502, 16)  # Patonga, zoomed in
 
-    # Locations to take NDVI data
-    locations = ee.FeatureCollection([
-        ee.Feature(ee.Geometry.Point([146.9211, -31.2532]), {'name': 'NSW Centre'}),
-        ee.Feature(ee.Geometry.Point([151.2093, -33.8688]), {'name': 'Sydney'}),
-        ee.Feature(ee.Geometry.Point([152.1895, -30.8487]), {'name': 'Carrai Creek'}),
-        ee.Feature(ee.Geometry.Point([151.2642, -33.6184]), {'name': 'Ku ring gai chase park'})
-    ])
+    # Coverage including mapping error
+    multipoint = ee.Geometry.MultiPoint(lon_lat)
+    coverage = multipoint.buffer(circle_radius + mapping_error)
 
-    # Get NDVI values 
-    ndvi_values = extract_ndvi_values(mean_ndvi, locations)
-    print(ndvi_values)
+    # Coverage without mapping error
+    multipoint_mapping = ee.Geometry.MultiPoint(lon_lat)
+    coverage_mapping = multipoint_mapping.buffer(circle_radius)
 
-    # Write the NDVI values to a csv
-    write_to_csv(ndvi_values, 'ndvi_values.csv', 'NDVI Index')
+    # Infrared layer for mapping error, NDVI for without
+    clipped = dataset.mean().select(['B8', 'B4', 'B3']).clip(coverage)
+    clipped2 = dataset.mean().select('NDVI').clip(coverage_mapping)
+    Map.add_ee_layer(clipped, infrared_vis, "Infrared", opacity=0.7)
+    Map.add_ee_layer(clipped2, ndvi_vis, "NDVI", opacity=0.7)
 
     return Map
 
@@ -241,15 +173,20 @@ def S2A_coverage(start_date: str, end_date: str, lon_lat, circle_radius):
     return Map
 
 
-def mapping_accuracy(start_date: str, end_date: str, lon_lat, mapping_error, circle_radius):
+
+def S2A_infrared(start_date: str, end_date: str, lon_lat, circle_radius):
     # Sentinel-2A satellite
     dataset = (
         ee.ImageCollection('COPERNICUS/S2_SR')
         .filterDate(start_date, end_date)
+        # Pre-filter to get less cloudy granules.
         .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
         .map(mask_s2_clouds)
-        .map(calculate_ndvi)  # Calculates the NDVI index
+        .map(calculate_ndvi) # Calculates the NDVI index
     )
+
+    # Selecting NDVI
+    mean_ndvi = dataset.mean().select('NDVI')
 
     # Visualisation parameter
     ndvi_vis = {
@@ -266,26 +203,83 @@ def mapping_accuracy(start_date: str, end_date: str, lon_lat, mapping_error, cir
     }
 
     # Map initialisation
-    Map = geemap.Map()
-    Map.set_center(151.2727, -33.5502, 16)  # Patonga, zoomed in
+    Map = geemap.Map() 
+    Map.set_center(146.9211, -31.2532, 6) # Center of nsw
 
-    # Coverage including mapping error
-    multipoint = ee.Geometry.MultiPoint(lon_lat)
-    coverage = multipoint.buffer(circle_radius + mapping_error)
+    # Square FOV
+    squares = ee.Geometry.Point(lon_lat[25]).buffer(circle_radius).bounds()
+    coverage = ee.Geometry.MultiPolygon([squares.coordinates()])
 
-    # Coverage without mapping error
-    multipoint_mapping = ee.Geometry.MultiPoint(lon_lat)
-    coverage_mapping = multipoint_mapping.buffer(circle_radius)
+    # Extract the bounds
+    bounds = squares.bounds().getInfo()['coordinates'][0]
 
-    # Infrared layer for mapping error, NDVI for without
-    clipped = dataset.mean().select(['B8', 'B4', 'B3']).clip(coverage)
-    clipped2 = dataset.mean().select('NDVI').clip(coverage_mapping)
-    Map.add_ee_layer(clipped, infrared_vis, "Infrared", opacity=0.7)
-    Map.add_ee_layer(clipped2, ndvi_vis, "NDVI", opacity=0.7)
+    # Define a region of interest using ee.Geometry.Rectangle
+    roi = ee.Geometry.Rectangle([[bounds[0][0], bounds[0][1]], [bounds[2][0], bounds[2][1]]])
+
+    # Add the region of interest to the map
+    Map.addLayer(roi, {}, 'ROI')
+
+    # coverage = multipoint.buffer(circle_radius)
+    # mean_ndvi_clipped = mean_ndvi.clip(coverage)
+    infrared_clipped = dataset.mean().clip(coverage)
+    # Map.add_ee_layer(mean_ndvi_clipped, ndvi_vis, "NDVI")
+    Map.add_ee_layer(infrared_clipped, infrared_vis, "Coverage")
 
     return Map
 
 
+def S2A_NDVI(start_date: str, end_date: str, lon_lat, circle_radius):
+    # Sentinel-2A satellite
+    dataset = (
+        ee.ImageCollection('COPERNICUS/S2_SR')
+        .filterDate(start_date, end_date)
+        # Pre-filter to get less cloudy granules.
+        .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
+        .map(mask_s2_clouds)
+        .map(calculate_ndvi) # Calculates the NDVI index
+    )
+
+    # Selecting NDVI
+    mean_ndvi = dataset.mean().select('NDVI')
+
+    # Visualisation parameter
+    ndvi_vis = {
+        'min': -1,
+        'max': 1,
+        'palette': ['blue', 'white', 'green']
+    }
+
+    # Red for alternate plotting
+    infrared_vis = {
+        'min': 0.0,
+        'max': 0.3,
+        'bands': ['B8', 'B4', 'B3']
+    }
+
+    # Map initialisation
+    Map = geemap.Map() 
+    Map.set_center(146.9211, -31.2532, 6) # Center of nsw
+
+    # Square FOV
+    squares = ee.Geometry.Point(lon_lat[25]).buffer(circle_radius).bounds()
+    coverage = ee.Geometry.MultiPolygon([squares.coordinates()])
+
+    # Extract the bounds
+    bounds = squares.bounds().getInfo()['coordinates'][0]
+
+    # Define a region of interest using ee.Geometry.Rectangle
+    roi = ee.Geometry.Rectangle([[bounds[0][0], bounds[0][1]], [bounds[2][0], bounds[2][1]]])
+
+    # Add the region of interest to the map
+    Map.addLayer(roi, {}, 'ROI')
+
+    # coverage = multipoint.buffer(circle_radius)
+    mean_ndvi_clipped = mean_ndvi.clip(coverage)
+    # infrared_clipped = dataset.mean().clip(coverage)
+    Map.add_ee_layer(mean_ndvi_clipped, ndvi_vis, "NDVI")
+    # Map.add_ee_layer(infrared_clipped, infrared_vis, "Coverage")
+
+    return Map
 
 def plot_one_swath(start_date: str, end_date: str, lon_lat, circle_radius):
 
@@ -643,3 +637,66 @@ def interpolate_points(A, B, num_points):
         interpolated_points.append((new_x, new_y))
         
     return interpolated_points
+
+
+def initial_map():
+    # Set some points of interest
+    # Mackay, Qld
+    lat = -21.1434
+    lon = 149.1868
+
+    # Get URL for our image
+    Data_Set_Clearing = ee.ImageCollection("WRI/GFW/FORMA/raw_output_firms")
+
+    # Create an interactive map
+    # Map = folium.Map(center=[lat, lon], zoom_start=7)
+    Map = geemap.Map(center=[lat, lon], zoom=7)
+
+    # Define the dataset
+    dataset = ee.ImageCollection('WRI/GFW/FORMA/raw_output_firms')
+    dataset.filter(ee.Filter.date('2018-08-01', '2018-08-15'))
+
+    # Select the 'nday' band
+    percentageOfClearing = dataset.select('nday')
+
+    # Visualization parameters
+    visParams = {
+    'min': 0.0,
+    'max': 0.01
+    }
+
+    # Add layer to map
+    Map.addLayer(percentageOfClearing, visParams, 'Percentage of clearing')
+
+    return Map
+
+
+def S2A(start_date: str, end_date: str):
+    # Get the geometry of New South Wales
+    nsw = ee.FeatureCollection("FAO/GAUL/2015/level1").filter(
+            ee.Filter.eq('ADM1_NAME', 'New South Wales')
+    )
+ 
+   # Sentinel-2A satellite
+    dataset = (
+        ee.ImageCollection('COPERNICUS/S2_SR')
+        .filterBounds(nsw)
+        .filterDate(start_date, end_date)
+        # Pre-filter to get less cloudy granules.
+        .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
+        .map(mask_s2_clouds)
+    )
+
+    # Visualisation parameter
+    visualization = {
+        'min': 0.0,
+        'max': 0.3,
+        'bands': ['B8', 'B4', 'B3'],
+    }
+
+    # Map initialisation
+    Map = geemap.Map() 
+    Map.set_center(146.9211, -31.2532, 6) # Center of nsw
+    Map.add_ee_layer(dataset.mean(), visualization, 'Infrared')
+
+    return Map
