@@ -186,17 +186,7 @@ def S2A_infrared(start_date: str, end_date: str, lon_lat, circle_radius):
         .map(calculate_ndvi) # Calculates the NDVI index
     )
 
-    # Selecting NDVI
-    mean_ndvi = dataset.mean().select('NDVI')
-
-    # Visualisation parameter
-    ndvi_vis = {
-        'min': -1,
-        'max': 1,
-        'palette': ['blue', 'white', 'green']
-    }
-
-    # Red for alternate plotting
+    # Infrared visibility
     infrared_vis = {
         'min': 0.0,
         'max': 0.3,
@@ -220,11 +210,9 @@ def S2A_infrared(start_date: str, end_date: str, lon_lat, circle_radius):
     # Add the region of interest to the map
     Map.addLayer(roi, {}, 'ROI')
 
-    # coverage = multipoint.buffer(circle_radius)
-    # mean_ndvi_clipped = mean_ndvi.clip(coverage)
+    # Add in the infrared layer
     infrared_clipped = dataset.mean().clip(coverage)
-    # Map.add_ee_layer(mean_ndvi_clipped, ndvi_vis, "NDVI")
-    Map.add_ee_layer(infrared_clipped, infrared_vis, "Coverage")
+    Map.add_ee_layer(infrared_clipped, infrared_vis, "Infrared")
 
     return Map
 
@@ -250,11 +238,46 @@ def S2A_NDVI(start_date: str, end_date: str, lon_lat, circle_radius):
         'palette': ['blue', 'white', 'green']
     }
 
-    # Red for alternate plotting
-    infrared_vis = {
+    # Map initialisation
+    Map = geemap.Map() 
+    Map.set_center(146.9211, -31.2532, 6) # Center of nsw
+
+    # Square FOV
+    squares = ee.Geometry.Point(lon_lat[25]).buffer(circle_radius).bounds()
+    coverage = ee.Geometry.MultiPolygon([squares.coordinates()])
+
+    # Extract the bounds
+    bounds = squares.bounds().getInfo()['coordinates'][0]
+
+    # Define a region of interest using ee.Geometry.Rectangle
+    roi = ee.Geometry.Rectangle([[bounds[0][0], bounds[0][1]], [bounds[2][0], bounds[2][1]]])
+
+    # Add the region of interest to the map
+    Map.addLayer(roi, {}, 'ROI')
+
+    # Adding in rgb layer
+    mean_ndvi_clipped = mean_ndvi.clip(coverage)
+    Map.add_ee_layer(mean_ndvi_clipped, ndvi_vis, "NDVI")
+
+    return Map
+
+
+def S2A_rgb(start_date: str, end_date: str, lon_lat, circle_radius):
+    # Sentinel-2A satellite
+    dataset = (
+        ee.ImageCollection('COPERNICUS/S2_SR')
+        .filterDate(start_date, end_date)
+        # Pre-filter to get less cloudy granules.
+        .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
+        .map(mask_s2_clouds)
+        .map(calculate_ndvi) # Calculates the NDVI index
+    )
+
+    # RGB visibility
+    rgb_vis = {
         'min': 0.0,
         'max': 0.3,
-        'bands': ['B8', 'B4', 'B3']
+        'bands': ['B4', 'B3', 'B2']
     }
 
     # Map initialisation
@@ -274,13 +297,13 @@ def S2A_NDVI(start_date: str, end_date: str, lon_lat, circle_radius):
     # Add the region of interest to the map
     Map.addLayer(roi, {}, 'ROI')
 
-    # coverage = multipoint.buffer(circle_radius)
-    mean_ndvi_clipped = mean_ndvi.clip(coverage)
-    # infrared_clipped = dataset.mean().clip(coverage)
-    Map.add_ee_layer(mean_ndvi_clipped, ndvi_vis, "NDVI")
-    # Map.add_ee_layer(infrared_clipped, infrared_vis, "Coverage")
+    # Add in the infrared layer
+    rgb_clipped = dataset.mean().clip(coverage)
+    Map.add_ee_layer(rgb_clipped, rgb_vis, "RGB")
 
     return Map
+
+
 
 def plot_one_swath(start_date: str, end_date: str, lon_lat, circle_radius):
 

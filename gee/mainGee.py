@@ -31,6 +31,7 @@ def mainGee(results, mapping_error, run_sim):
     if(run_sim == 0):
         functions.show_map("Infrared")
         functions.show_map("NDVI")
+        functions.show_map("RGB")
         functions.show_map("Fires")
         functions.show_map("Mapping accuracy")
     
@@ -44,15 +45,15 @@ def mainGee(results, mapping_error, run_sim):
         functions.initialise_credentials()
 
         # Latitude and longitude conversion
-        # lon_lat = functions.eci_to_llh(r_obv, t_obv, epoch)
         lon_lat = functions.eci_to_llh_nsw(r_obv, t_obv, epoch, num_points=0)
         st_main(lon_lat)
         lon_lat_interpolated = functions.eci_to_llh_nsw(r_obv, t_obv, epoch, num_points=500)
 
         # Sentinel-2A satellite
-        # Map = functions.S2A_coverage("2019-12-01", "2020-01-31", lon_lat, circle_radius=345088) # Radius corresponding to a 6.2 degree swathe width
+        Map = functions.S2A_coverage("2019-12-01", "2020-01-31", lon_lat, circle_radius=345088) # Radius corresponding to a 6.2 degree swathe width
         Map_infra = functions.S2A_infrared("2019-12-01", "2020-01-31", lon_lat, circle_radius=345088)
         Map_ndvi = functions.S2A_NDVI("2019-12-01", "2020-01-31", lon_lat, circle_radius=345088)
+        Map_rgb = functions.S2A_rgb("2019-12-01", "2020-01-31", lon_lat, circle_radius=345088)
         Map_fires = functions.fires()
         Map = functions.mapping_accuracy("2019-12-01", "2020-01-31", lon_lat_interpolated, mapping_error, circle_radius=100)
 
@@ -60,11 +61,13 @@ def mainGee(results, mapping_error, run_sim):
         functions.create_map(Map_fires, "Fires")
         functions.create_map(Map, "Mapping accuracy")
         functions.create_map(Map_infra, "Infrared")
+        functions.create_map(Map_rgb, "RGB")
         functions.create_map(Map_ndvi, "NDVI")
 
         # Show map
         functions.show_map("Infrared")
         functions.show_map("NDVI")
+        functions.show_map("RGB")
         functions.show_map("Fires")
         functions.show_map("Mapping accuracy")
 
