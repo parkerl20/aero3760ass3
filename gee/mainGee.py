@@ -2,6 +2,8 @@ from . import functions
 import datetime as dt
 import ee
 import matplotlib.pyplot as plt
+from spatiotemporal import st_main
+# from . import spatiotemporal
 
 def extract_roi(Map, lon_lat):
     # Assuming Map is a data structure containing the map data and lon_lat is the region of interest
@@ -44,6 +46,7 @@ def mainGee(results, mapping_error, run_sim):
         # Latitude and longitude conversion
         # lon_lat = functions.eci_to_llh(r_obv, t_obv, epoch)
         lon_lat = functions.eci_to_llh_nsw(r_obv, t_obv, epoch, num_points=0)
+        st_main(lon_lat)
         lon_lat_interpolated = functions.eci_to_llh_nsw(r_obv, t_obv, epoch, num_points=500)
 
         # Sentinel-2A satellite
