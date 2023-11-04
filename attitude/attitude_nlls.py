@@ -172,6 +172,83 @@ def get_reference_vectors(num_stars, num_sensors, time):
     # ref_vectors = np.tile(ref_vectors, n)
     return ref_vectors
 
+def generate_sensor_data(time, euler_angle):
+        """
+
+        Inputs: 
+            euler_angle: euler angle of true attitude data
+            time: time corresponding 
+
+        Output: 
+            observed_vectors: vector observations for star tracker and sun sensor measurements in body frame
+            ref_vectors: reference vectors to stars and sun for the observed vectors in lgcv frame
+        
+        """
+        
+        # generate reference vectors for sun 20 stars and 2 of each sensor
+        num_stars = 20
+        num_sensors = 2
+        freq = 5 # sensors have 5Hz (5 measurements / second)
+        # number of measurements taken each second
+        n = num_sensors*freq
+        ref_vectors = get_reference_vectors(num_stars, n,time)
+
+        # generate euler angles for sun and star data 
+        # errors from sensor specs in degrees
+        euler_sun_sensor_errors = np.random.normal(euler_angle, 0.1 , (n,3)) 
+        euler_star_tracker_errors =np.random.normal(euler_angle, [0.0023, 0.03, 0.03 ], (n,3)) # yaw, pitch, roll (zyx)
+
+        # quat_sun_sensor_errors = np.random.normal(attitude_poses[:,t], 0.0001, (n,4)) # 0.01306
+        # quat_star_tracker_errors =np.random.normal(attitude_poses[:,t], 0.0001, (n,4)) 
+        
+        
+        observed_vectors = np.zeros((n*(num_stars+1), 3))
+
+        # generate data for sun sensor
+        # sun sensor readings are the same 
+        count = 0
+        # refs are in order sun sun star star
+        for angles in euler_sun_sensor_errors:
+
+            quat = euler2quat(angles)
+            
+            qw = quat[0]
+            qx = quat[1]
+            qy = quat[2]
+            qz = quat[3]
+
+            C_lgcv2body_quat = np.array([[qw**2 + qx**2 - qy**2 - qz**2, 2*(qx*qy - qw*qz), 2*(qx*qz + qw*qy)],
+                                [2*(qx*qy + qw*qz), qw**2 - qx**2 + qy**2 - qz**2, 2*(qy*qz - qw*qx)],
+                                [2*(qx*qz - qw*qy), 2*(qy*qz + qw*qx), qw**2 - qx**2 - qy**2 + qz**2]]).T
+
+
+
+            observed_vectors[count] = (C_lgcv2body_quat @ ref_vectors[0])
+            count = count + 1
+
+        # generate data for star_tracker sensor
+        # count = 2
+        for angles in euler_star_tracker_errors:
+
+            quat = euler2quat(angles)
+            qw = quat[0]
+            qx = quat[1]
+            qy = quat[2]
+            qz = quat[3]
+
+            C_lgcv2body_quat = np.array([[qw**2 + qx**2 - qy**2 - qz**2, 2*(qx*qy - qw*qz), 2*(qx*qz + qw*qy)],
+                                [2*(qx*qy + qw*qz), qw**2 - qx**2 + qy**2 - qz**2, 2*(qy*qz - qw*qx)],
+                                [2*(qx*qz - qw*qy), 2*(qy*qz + qw*qx), qw**2 - qx**2 - qy**2 + qz**2]]).T
+
+            observed_vectors[count:  num_stars+count] = ((C_lgcv2body_quat @ ref_vectors[count:num_stars+count].T).T)
+            count = count + num_stars
+        observed_vectors = np.array(observed_vectors)
+
+        return observed_vectors, ref_vectors
+
+
+
+
 def run_attitude_determ(length_flag):
     """
     Based on time for beginning of sim finds accurate sensor data
@@ -227,67 +304,9 @@ def run_attitude_determ(length_flag):
     convergence = []
     
 
-
+   
     for t in range(len(times)):
-        # generate reference vectors for sun 20 stars and 2 of each sensor
-        num_stars = 20
-        num_sensors = 2
-        freq = 5 # sensors have 5Hz (5 measurements / second)
-        # number of measurements taken each second
-        n = num_sensors*freq
-        ref_vectors = get_reference_vectors(num_stars, n,times[t])
-
-        # generate euler angles for sun and star data 
-        # errors from sensor specs in degrees
-        euler_sun_sensor_errors = np.random.normal(eulers[t-1], 0.1 , (n,3)) 
-        euler_star_tracker_errors =np.random.normal(eulers[t-1], [0.0023, 0.03, 0.03 ], (n,3)) # yaw, pitch, roll (zyx)
-
-        # quat_sun_sensor_errors = np.random.normal(attitude_poses[:,t], 0.0001, (n,4)) # 0.01306
-        # quat_star_tracker_errors =np.random.normal(attitude_poses[:,t], 0.0001, (n,4)) 
-        
-        
-        observed_vectors = np.zeros((n*(num_stars+1), 3))
-
-        # generate data for sun sensor
-        # sun sensor readings are the same 
-        count = 0
-        # refs are in order sun sun star star
-        for angles in euler_sun_sensor_errors:
-
-            quat = euler2quat(angles)
-            
-            qw = quat[0]
-            qx = quat[1]
-            qy = quat[2]
-            qz = quat[3]
-
-            C_lgcv2body_quat = np.array([[qw**2 + qx**2 - qy**2 - qz**2, 2*(qx*qy - qw*qz), 2*(qx*qz + qw*qy)],
-                                [2*(qx*qy + qw*qz), qw**2 - qx**2 + qy**2 - qz**2, 2*(qy*qz - qw*qx)],
-                                [2*(qx*qz - qw*qy), 2*(qy*qz + qw*qx), qw**2 - qx**2 - qy**2 + qz**2]]).T
-
-
-
-            observed_vectors[count] = (C_lgcv2body_quat @ ref_vectors[0])
-            count = count + 1
-
-        # generate data for star_tracker sensor
-        # count = 2
-        for angles in euler_star_tracker_errors:
-
-            quat = euler2quat(angles)
-            qw = quat[0]
-            qx = quat[1]
-            qy = quat[2]
-            qz = quat[3]
-
-            C_lgcv2body_quat = np.array([[qw**2 + qx**2 - qy**2 - qz**2, 2*(qx*qy - qw*qz), 2*(qx*qz + qw*qy)],
-                                [2*(qx*qy + qw*qz), qw**2 - qx**2 + qy**2 - qz**2, 2*(qy*qz - qw*qx)],
-                                [2*(qx*qz - qw*qy), 2*(qy*qz + qw*qx), qw**2 - qx**2 - qy**2 + qz**2]]).T
-
-            observed_vectors[count:  num_stars+count] = ((C_lgcv2body_quat @ ref_vectors[count:num_stars+count].T).T)
-            count = count + num_stars
-        observed_vectors = np.array(observed_vectors)
-
+        observed_vectors, ref_vectors = generate_sensor_data(times[t-1], eulers[t-1])
         # initial guess in quaternion
         att_init = euler2quat(np.array([10, 30, -45]))  
 
@@ -352,8 +371,8 @@ def run_attitude_determ(length_flag):
 
 def main():
     # length_flag = 1 for short version, length_flag = 2 for long version
-    # run_attitude_determ(length_flag = 1)
-    final_estimates, residuals, convergence = run_attitude_determ(length_flag = 2)
+    # final_estimates, residuals, convergence = run_attitude_determ(length_flag = 2)
+    final_estimates, residuals, convergence = run_attitude_determ(length_flag = 1)
 
 
 if __name__ == '__main__':
