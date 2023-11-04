@@ -1,9 +1,8 @@
 from . import functions
+from . import spatiotemporal
 import datetime as dt
 import ee
 import matplotlib.pyplot as plt
-from spatiotemporal import st_main
-# from . import spatiotemporal
 
 def extract_roi(Map, lon_lat):
     # Assuming Map is a data structure containing the map data and lon_lat is the region of interest
@@ -37,16 +36,17 @@ def mainGee(results, mapping_error, run_sim):
     
     else:
         # Load in data
-        r_obv = results[1]['r'][:]
-        t_obv = results[1]['t'][:]
+        r_obv = results[2]['r'][:]
+        t_obv = results[2]['t'][:]
         epoch = dt.datetime(2023, 1, 1)
 
         # Connect to GEE
-        functions.initialise_credentials()
+        # functions.initialise_credentials()
 
         # Latitude and longitude conversion
         lon_lat = functions.eci_to_llh_nsw(r_obv, t_obv, epoch, num_points=0)
-        st_main(lon_lat)
+        print("lon_lat:", lon_lat)
+        spatiotemporal.st_main(lon_lat)
         lon_lat_interpolated = functions.eci_to_llh_nsw(r_obv, t_obv, epoch, num_points=500)
 
         # Sentinel-2A satellite
