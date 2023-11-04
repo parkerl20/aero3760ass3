@@ -115,7 +115,7 @@ def nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init, dy_flag):
         W[4,4] = 0.23
         W[5,5] = 0.23
 
-            
+
         # Dilution of Precision for w,x,y,z of quaternion     
         dops =  [np.sqrt(np.linalg.inv( H.T @ H)[0,0]), np.sqrt(np.linalg.inv( H.T @ H)[1,1]), np.sqrt(np.linalg.inv( H.T @ H)[2,2]), np.sqrt(np.linalg.inv( H.T @ H)[3,3])]
 
@@ -170,16 +170,10 @@ def get_reference_vectors(num_stars, num_sensors, time):
     # ref_vectors = np.tile(ref_vectors, n)
     return ref_vectors
 
-# def generate_sun_star_data(t):
-
-
-
-
-def main():
-
+def run_attitude_determ(length_of_sim):
     time_start = 0
     # end of simulation
-    one_period = 10000# 60000
+    one_period = length_of_sim# 60000
 
 
     initial_euler = np.array([10, 30, -45])
@@ -317,6 +311,13 @@ def main():
     plt.ylabel("Iterations to Converge")
     plt.xlabel("Timesteps")
     plt.show()
+
+
+
+def main():
+    length_of_sim = 1000
+    run_attitude_determ(length_of_sim)
+    
 
 
 
