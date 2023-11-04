@@ -54,7 +54,7 @@ def orbit_simulation(
     
     propagation_time = satellite.period
     
-    # # Add attitude state
+    # Add attitude state
     # satellite.init_v_eci = np.concatenate(
     #     satellite.init_v_eci.flatten(),
     #     np.array([1, 0, 0.045, 0.015]) # Quaternions of Euler Angles (10, 30, -45)
@@ -123,10 +123,11 @@ def orbit_simulation(
     # Simulate the satellite
     r_residuals = [[], [], []]
     v_residuals = [[], [], []]
+    att_residuals = [[], [], [], []]
     raw_r = [[], [], []]
     time_steps = []    
     gnss_times = []
-    mappings = [[], [], []]
+    mappings = [[], [], [], [], [], []]
     
     
     for r_true, v_true, attitude_true, t in satellite:
@@ -162,11 +163,12 @@ def orbit_simulation(
         #     v_true
         # )
         
-        in_track, cross_track, radial = mapping_budget(
+        # TODO: Add when attitude is done
+        in_track, cross_track, radial, azimuth, nadir, rms = mapping_budget(
             ekf_r,
             r_true,
             v_true,
-            attitude_true,      # needs to be converted to euhler (in quarternions)
+            attitude_true,  # needs to be converted to euler (currently in quarternions)
             att_estimation
         )
         
@@ -179,43 +181,30 @@ def orbit_simulation(
         v_residuals[2].append(v_true[2] - ekf_v[2])
         
         time_steps.append(t)
-        
-        # MApping accuracies
-        in_track, cross_track, radial = ot.ECI_to_mapping_error(
-            ekf_r,
-            r_true,
-            v_true
-        )
-        
-        R_H = np.linalg.norm(ekf_r) - const.R_EARTH
-        R_T = const.R_EARTH
-        R_S = const.R_EARTH + R_H
-        
-        eta_rad = np.arcsin((1/2) * (const.R_EARTH / R_S))
-        eta_deg = np.rad2deg(eta_rad)
-        
-        lam_deg = 90 - elevation_deg - eta_deg
-        lam_rad = np.deg2rad(lam_deg)
-        
-        phi_deg = 90
-        phi_rad = np.deg2rad(phi_deg)
-        
-        H_mapping = np.arcsin(np.sin(lam_rad) * np.sin(phi_rad))
-        G_mapping = np.arcsin(np.sin(lam_rad) * np.cos(phi_rad))
-        
-        intrack_error = in_track * R_T / R_S * np.cos(H_mapping)
-        crosstrack_error = cross_track * R_T / R_S * np.cos(G_mapping)
-        radial_error = radial * np.sin(eta_rad) / np.sin(elevation_deg)
-        
-        mappings[0].append(intrack_error)
-        mappings[1].append(crosstrack_error)
-        mappings[2].append(radial_error)
+    
+        # print("Current attitude: ", satellite.current_attitude)
+        att_residuals[0].append(satellite.current_attitude[0])
+        att_residuals[1].append(satellite.current_attitude[1])
+        att_residuals[2].append(satellite.current_attitude[2])
+        att_residuals[3].append(satellite.current_attitude[3])
+
+        mappings[0].append(in_track)
+        mappings[1].append(cross_track)
+        mappings[2].append(radial)
+        mappings[3].append(azimuth)
+        mappings[4].append(nadir)
+        mappings[5].append(rms)
         
         
     create_od_results(
         r_residuals,
         v_residuals,
         np.array(satellite.algorithms["OD EKF"].logger.get_log("r_residual")).T,
+        time_steps
+    )
+
+    create_att_results(
+        att_residuals,
         time_steps
     )
     
@@ -249,6 +238,36 @@ def orbit_simulation(
     
     radial_fig.tight_layout()
     radial_fig.savefig("figures/od_mapping_radial.png")
+
+    azimuth_fig, azimuth_ax = plt.subplots()
+    azimuth_ax.plot(time_steps, mappings[3])
+    
+    azimuth_ax.set_title("Azimuth Mapping Error")
+    azimuth_ax.set_xlabel("Time (s)")
+    azimuth_ax.set_ylabel("Error (m)")
+    
+    azimuth_fig.tight_layout()
+    azimuth_fig.savefig("figures/att_mapping_azimuth.png")
+
+    nadir_fig, nadir_ax = plt.subplots()
+    nadir_ax.plot(time_steps, mappings[4])
+    
+    nadir_ax.set_title("Nadir Mapping Error")
+    nadir_ax.set_xlabel("Time (s)")
+    nadir_ax.set_ylabel("Error (m)")
+    
+    nadir_fig.tight_layout()
+    nadir_fig.savefig("figures/att_mapping_nadir.png")
+
+    rms_fig, rms_ax = plt.subplots()
+    rms_ax.plot(time_steps, mappings[5])
+    
+    rms_ax.set_title("RMS Mapping Error")
+    rms_ax.set_xlabel("Time (s)")
+    rms_ax.set_ylabel("Error (m)")
+    
+    rms_fig.tight_layout()
+    rms_fig.savefig("figures/att_mapping_rms.png")
     
     plt.show()
     
@@ -441,6 +460,64 @@ def log_EKF_algo(
     
     return
 
+def create_att_results( # -----------------------------------------------------------------------------------------------------
+    att_residuals: list[list[float]],
+    time_steps: list[float]
+) -> None:
+    """
+    """
+    startup_plotting()
+    # print("Current Attitude:", att_residuals)
+    # print("Size of time:", len(time_steps))
+    # print("Size of att_residuals[0]:", len(att_residuals[0]))
+
+    attw_fig, attw_ax = plt.subplots()
+    attw_ax.plot(time_steps[1:], att_residuals[0][1:])
+    
+    attw_ax.set_title("Quaternion[0]")
+    attw_ax.set_xlabel("Time (s)")
+    attw_ax.set_ylabel("Quaternion Angle (units)")
+    
+    attw_fig.tight_layout()
+    
+    attw_fig.savefig("figures/at_quaternion[0].png")
+
+
+    attx_fig, attx_ax = plt.subplots()
+    attx_ax.plot(time_steps[1:], att_residuals[1][1:])
+    
+    attx_ax.set_title("Quaternion[1]")
+    attx_ax.set_xlabel("Time (s)")
+    attx_ax.set_ylabel("Quaternion Angle (units)")
+    
+    attx_fig.tight_layout()
+    
+    attx_fig.savefig("figures/at_quaternion[1].png")
+
+
+    atty_fig, atty_ax = plt.subplots()
+    atty_ax.plot(time_steps[1:], att_residuals[2][1:])
+    
+    atty_ax.set_title("Quaternion[2]")
+    atty_ax.set_xlabel("Time (s)")
+    atty_ax.set_ylabel("Quaternion Angle (units)")
+    
+    atty_fig.tight_layout()
+    
+    atty_fig.savefig("figures/at_quaternion[2].png")
+
+
+    attz_fig, attz_ax = plt.subplots()
+    attz_ax.plot(time_steps[1:], att_residuals[3][1:])
+    
+    attz_ax.set_title("Quaternion[3]")
+    attz_ax.set_xlabel("Time (s)")
+    attz_ax.set_ylabel("Quaternion Angle (units)")
+    
+    attz_fig.tight_layout()
+    
+    attz_fig.savefig("figures/at_quaternion[3].png")
+
 def create_od_results(
     r_residuals: list[list[float]],
     v_residuals: list[list[float]],
@@ -553,10 +630,18 @@ def calculate_rms(
     rms = math.sqrt(sum_of_squares / n)
     return rms
 
-def mapping_budget(r_eci, r_true, v_true, euler_truths, euler_estimate):
+def mapping_budget(
+    r_eci, 
+    r_true, 
+    v_true, 
+    att_true, 
+    att_estimate
+):
+    
+    # print("att_true:", att_true)
 
     delta_I, delta_C, delta_R = ot.ECI_to_mapping_error(r_eci, r_true, v_true)
-    delta_azimuth, delta_elevation = ot.ECI_to_azimuth_error(euler_truths, euler_estimate)
+    delta_azimuth, delta_elevation = ot.ECI_to_azimuth_error(att_true, att_estimate)
 
 
     R_E = 6371  # km
@@ -592,23 +677,17 @@ def mapping_budget(r_eci, r_true, v_true, euler_truths, euler_estimate):
     crosstrack_error = delta_C * R_T / R_S * np.cos(G_mapping)
     radial_error = delta_R * np.sin(eta_rad) / np.sin(elevation_rad)
 
-
-
-
     division = 0.0451649 # for elevation 60 deg (worst case)
-
     D = R_E * division
 
     azimuth_error = delta_azimuth * D * np.sin(eta_rad)
     nadir_error = delta_elevation * D / np.sin(elevation_rad)
 
-
     data = [azimuth_error, nadir_error, intrack_error, crosstrack_error, radial_error]
 
     rms = calculate_rms(data)
 
-    # return rms
-    return intrack_error, crosstrack_error, radial_error
+    return intrack_error, crosstrack_error, radial_error, azimuth_error, nadir_error, rms
 
 def attitude_NLLS_algo_function(
     time: float,

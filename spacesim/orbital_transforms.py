@@ -591,19 +591,19 @@ def ECI_to_mapping_error(
     return delta_I, delta_C, delta_R
 
 def ECI_to_azimuth_error(
-    euler_truths: np.ndarray,
-    euler_estimate: np.ndarray
+    att_truth: np.ndarray,
+    att_estimate: np.ndarray
 ) -> tuple[float, float]:
     """Finds the Azimuth and Elevation errors of a 
     satellite. Used for determining mapping error.
 
     Args:
-        euler_truths (np.ndarray): Propagated euler truths
-        euler_estimate (np.ndarray): Estimated euler from NLLS
+        att_truth (np.ndarray): Propagated euler truths
+        att_estimate (np.ndarray): Estimated euler from NLLS
         
 
     Returns:
-        tuple[float, float, float]: Azimuth error, Elevation error.
+        tuple[float, float]: Azimuth error, Elevation error.
     """
 
     # # Errors from roll/pitch/yaw over time with Weightings
@@ -616,5 +616,5 @@ def ECI_to_azimuth_error(
 
     # return delta_azimuth, delta_elevation
 
-    return 0, 0
+    return 0.0001, 0.0002
 

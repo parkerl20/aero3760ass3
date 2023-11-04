@@ -15,7 +15,7 @@ def main():
     # Runs the main orbit code with results being r, v, t of the 4 satellites
     results = mainOrbit(show_results=0)
     
-    # # ---------------- Satellite simulation
+    # ---------------- Satellite simulation
     # r0 = results[0]['r'][:,0]
     # v0 = results[0]['v'][:,0]
     
@@ -24,18 +24,18 @@ def main():
     # epoch = dt.datetime(2023, 1, 1)
     # simulation_time = 1000
 
-    orbit_simulation(
-        simulation_time,
-        a,
-        e,
-        i,
-        RAAN,
-        arg_p,
-        true_anom,
-        epoch
-    )
-
-    # mainGee(results)
+    # orbit_simulation(
+    #     simulation_time,
+    #     a,
+    #     e,
+    #     i,
+    #     RAAN,
+    #     arg_p,
+    #     true_anom,
+    #     epoch
+    # )
+    
+    mainGee(results, mapping_error=2, run_sim=0)
 
     return 0
 

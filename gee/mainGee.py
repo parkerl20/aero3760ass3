@@ -21,49 +21,52 @@ def extract_roi(Map, lon_lat):
     return extracted_roi
 
 
-def mainGee(results):
+def mainGee(results, mapping_error, run_sim):
     """Currently running this code will take about 300 seconds, but will make a html map of nsw in the NDVI index,
        Select a few locations and write their specific NDVI values to a csv file and then display the html map
        in your browser.
     """
-    # Load in data
-    r_obv = results[3]['r'][:]
-    t_obv = results[3]['t'][:]
-    epoch = dt.datetime(2023, 1, 1)
+    if(run_sim == 0):
+        functions.show_map("Infrared")
+        functions.show_map("NDVI")
+        functions.show_map("RGB")
+        functions.show_map("Fires")
+        functions.show_map("Mapping accuracy")
+    
+    else:
+        # Load in data
+        r_obv = results[1]['r'][:]
+        t_obv = results[1]['t'][:]
+        epoch = dt.datetime(2023, 1, 1)
 
-    # Connect to GEE
-    functions.initialise_credentials()
+        # Connect to GEE
+        functions.initialise_credentials()
 
-    # Latitude and longitude conversion
-    # lon_lat = functions.eci_to_llh(r_obv, t_obv, epoch)
-    lon_lat = functions.eci_to_llh_nsw(r_obv, t_obv, epoch, num_points=0)
+        # Latitude and longitude conversion
+        lon_lat = functions.eci_to_llh_nsw(r_obv, t_obv, epoch, num_points=0)
+        lon_lat_interpolated = functions.eci_to_llh_nsw(r_obv, t_obv, epoch, num_points=500)
 
-    print("Length of lon_lat:", len(lon_lat))
-    print("lon_lat:", lon_lat)
-    print("lon_lat[0], lon_lat[50]:", lon_lat[6], lon_lat[50])
+        # Sentinel-2A satellite
+        Map = functions.S2A_coverage("2019-12-01", "2020-01-31", lon_lat, circle_radius=345088) # Radius corresponding to a 6.2 degree swathe width
+        Map_infra = functions.S2A_infrared("2019-12-01", "2020-01-31", lon_lat, circle_radius=345088)
+        Map_ndvi = functions.S2A_NDVI("2019-12-01", "2020-01-31", lon_lat, circle_radius=345088)
+        Map_rgb = functions.S2A_rgb("2019-12-01", "2020-01-31", lon_lat, circle_radius=345088)
+        Map_fires = functions.fires()
+        Map = functions.mapping_accuracy("2019-12-01", "2020-01-31", lon_lat_interpolated, mapping_error, circle_radius=100)
 
-    # Sentinel-2A satellite
-    # Map = functions.S2A("2019-12-01", "2020-01-31")
-    # Map = functions.fires()
-    # Map = functions.S2A_NDVI("2019-12-01", "2020-01-31")
-    Map = functions.S2A_coverage("2019-12-01", "2020-01-31", lon_lat, circle_radius=345088) # Radius corresponding to a 6.2 degree swathe width
-    # Map = functions.plot_red_points(lon_lat, circle_radius=10) # TODO: Replace circle_radius with mapping error radius
-    # Map = functions.plot_one_swath() # TODO: Place in for loop for spatiotemporal coverage
+        # Create map
+        functions.create_map(Map_fires, "Fires")
+        functions.create_map(Map, "Mapping accuracy")
+        functions.create_map(Map_infra, "Infrared")
+        functions.create_map(Map_rgb, "RGB")
+        functions.create_map(Map_ndvi, "NDVI")
 
-    # Create map
-    # functions.create_map(Map, "NSW Infrared")
-    # functions.create_map(Map, "Fires")
-    # functions.create_map(Map, "NDVI")
-    functions.create_map(Map, "S2A coverage")
-    # functions.create_map(Map, "Red")
-
-    # Show map
-    # functions.show_map("NSW Infrared")
-    # functions.show_map("Fires")
-    # functions.show_map("NDVI")
-    functions.show_map("S2A coverage")
-    # functions.show_map("Red")
-
+        # Show map
+        functions.show_map("Infrared")
+        functions.show_map("NDVI")
+        functions.show_map("RGB")
+        functions.show_map("Fires")
+        functions.show_map("Mapping accuracy")
 
 
 if __name__ == "__main__":
