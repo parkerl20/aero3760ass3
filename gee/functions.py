@@ -241,6 +241,52 @@ def S2A_coverage(start_date: str, end_date: str, lon_lat, circle_radius):
     return Map
 
 
+def mapping_accuracy(start_date: str, end_date: str, lon_lat, mapping_error, circle_radius):
+    # Sentinel-2A satellite
+    dataset = (
+        ee.ImageCollection('COPERNICUS/S2_SR')
+        .filterDate(start_date, end_date)
+        .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
+        .map(mask_s2_clouds)
+        .map(calculate_ndvi)  # Calculates the NDVI index
+    )
+
+    # Visualisation parameter
+    ndvi_vis = {
+        'min': -1,
+        'max': 1,
+        'palette': ['blue', 'white', 'green']
+    }
+
+    # Red for alternate plotting
+    infrared_vis = {
+        'min': 0.0,
+        'max': 0.3,
+        'bands': ['B8', 'B4', 'B3']
+    }
+
+    # Map initialisation
+    Map = geemap.Map()
+    Map.set_center(151.2727, -33.5502, 16)  # Patonga, zoomed in
+
+    # Coverage including mapping error
+    multipoint = ee.Geometry.MultiPoint(lon_lat)
+    coverage = multipoint.buffer(circle_radius + mapping_error)
+
+    # Coverage without mapping error
+    multipoint_mapping = ee.Geometry.MultiPoint(lon_lat)
+    coverage_mapping = multipoint_mapping.buffer(circle_radius)
+
+    # Infrared layer for mapping error, NDVI for without
+    clipped = dataset.mean().select(['B8', 'B4', 'B3']).clip(coverage)
+    clipped2 = dataset.mean().select('NDVI').clip(coverage_mapping)
+    Map.add_ee_layer(clipped, infrared_vis, "Infrared", opacity=0.7)
+    Map.add_ee_layer(clipped2, ndvi_vis, "NDVI", opacity=0.7)
+
+    return Map
+
+
+
 def plot_one_swath(start_date: str, end_date: str, lon_lat, circle_radius):
 
     # Sentinel-2A satellite
