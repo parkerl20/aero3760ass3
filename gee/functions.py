@@ -538,10 +538,34 @@ def dynamic_world():
     return Map
 
 
+# def fires():
+#     # Get the geometry of New South Wales
+#     nsw = ee.FeatureCollection("FAO/GAUL/2015/level1").filter(
+#             ee.Filter.eq('ADM1_NAME', 'New South Wales')
+#     )
+
+#     dataset = (
+#         ee.ImageCollection('FIRMS')
+#         .filterBounds(nsw)
+#         .filterDate('2019-12-01', '2020-02-01')
+#     )
+#     firesVis = {
+#         "min": 325.0,
+#         "max": 400.0,
+#         "palette": ['red', 'orange', 'yellow'],
+#     }
+
+#     # Map initialisation
+#     Map = geemap.Map() 
+#     Map.set_center(146.9211, -31.2532, 6) # Center of nsw
+#     Map.addLayer(fires, firesVis, 'Fires')
+
+#     return Map
+
 def fires():
     # Get the geometry of New South Wales
     nsw = ee.FeatureCollection("FAO/GAUL/2015/level1").filter(
-            ee.Filter.eq('ADM1_NAME', 'New South Wales')
+        ee.Filter.eq('ADM1_NAME', 'New South Wales')
     )
 
     dataset = (
@@ -549,17 +573,35 @@ def fires():
         .filterBounds(nsw)
         .filterDate('2019-12-01', '2020-02-01')
     )
-    fires = dataset.select('T21')
+    fires = dataset.select('T21').mean()
+
     firesVis = {
         "min": 325.0,
         "max": 400.0,
         "palette": ['red', 'orange', 'yellow'],
     }
 
+    # Identify hotspots (pixels with temperatures above a threshold)
+    hotspots = fires.gt(325)
+
+    # Get coordinates of the hotspots
+    lonlat = hotspots.addBands(ee.Image.pixelLonLat())
+    coords = lonlat.select(['longitude', 'latitude', 'T21']).reduceRegion(
+        reducer=ee.Reducer.toList(),
+        geometry=nsw,
+        scale=1000
+    ).getInfo()
+
     # Map initialisation
     Map = geemap.Map() 
-    Map.set_center(146.9211, -31.2532, 6) # Center of nsw
+    Map.set_center(146.9211, -31.2532, 6)  # Center of nsw
     Map.addLayer(fires, firesVis, 'Fires')
+
+    # Create a buffer around each hotspot and add to the map
+    for long, lat in zip(coords['longitude'], coords['latitude']):
+        point = ee.Geometry.Point([long, lat])
+        buffer = point.buffer(10000)  # Buffer of 10km
+        Map.addLayer(buffer, {"color": "yellow"}, "Buffer", False)  # Setting visibility to False
 
     return Map
 
