@@ -76,6 +76,8 @@ def nadirMappingError(std_dev_x, std_dev_y, num_points):
     plt.grid(True, linestyle='--', alpha=0.5)
     fig.savefig('./figures/rs_nadir_error.png')
     
+    plt.show()
+    
 
 
 
@@ -110,6 +112,7 @@ def swathEdgeMappingError(std_dev_x, std_dev_y, num_points):
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.savefig('./figures/rs_swath_error.png')
 
+    plt.show()
 
 
 
