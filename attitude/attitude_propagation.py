@@ -39,11 +39,11 @@ def propagate_attitude(t, q0):
     return q_dot
 
 
-def plot_attitude_propagation(time, eulers):
+def plot_attitude_propagation(time, eulers, fig_name):
 
-    x = [sub_array[0] for sub_array in eulers]
+    z = [sub_array[0] for sub_array in eulers]
     y = [sub_array[1] for sub_array in eulers]
-    z = [sub_array[2] for sub_array in eulers]
+    x = [sub_array[2] for sub_array in eulers]
 
     # Create a figure and a set of subplots
     fig, axs = plt.subplots(3, 1, figsize=(8, 6))
@@ -69,7 +69,7 @@ def plot_attitude_propagation(time, eulers):
 
     # Adjust layout and display the plot
     plt.tight_layout()
-    plt.show()
+    plt.savefig(fig_name)
 
     return 0
 

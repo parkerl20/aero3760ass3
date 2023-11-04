@@ -9,11 +9,25 @@ from orbit.mainOrbit import mainOrbit
 from orbit_simulation import orbit_simulation
 from gee.mainGee import mainGee
 import datetime as dt
+from attitude.attitude_nlls import run_attitude_determ
 
 
 def main():
+    # Uncomment the second line to run through the calculations instead of just results
+    satellite_simulation(run_sim=0)
+    # satellite_simulation(run_sim=1)
+
+    # length_flag = 1 for short version, length_flag = 2 for long version
+    run_attitude_determ(length_flag = 1)
+    # run_attitude_determ(length_flag = 2))
+
+
+    return 0
+
+
+def satellite_simulation(run_sim):
     # Runs the main orbit code with results being r, v, t of the 4 satellites
-    results = mainOrbit(show_results=0)
+    results = mainOrbit(show_results=1)
     
     # ---------------- Satellite simulation
     # r0 = results[0]['r'][:,0]
@@ -34,11 +48,8 @@ def main():
     #     true_anom,
     #     epoch
     # )
-    
-    mainGee(results, mapping_error=2, run_sim=1)
-
-    return 0
-
+    mapping_error = 2 # From attitude
+    mainGee(results, mapping_error, run_sim)
 
 if __name__ == "__main__":
     main()

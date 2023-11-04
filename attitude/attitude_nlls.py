@@ -170,10 +170,35 @@ def get_reference_vectors(num_stars, num_sensors, time):
     # ref_vectors = np.tile(ref_vectors, n)
     return ref_vectors
 
-def run_attitude_determ(length_of_sim):
+def run_attitude_determ(length_flag):
+    """
+    Based on time for beginning of sim finds accurate sensor data
+    Generates observation data based on sensor noise values
+    Runs NLLS attitude determination for each time step
+
+    Inputs:
+        length_flag: 
+            if 1: simulation will run short version (300 seconds)
+            if 2: simulation will run long version (10000 seconds)
+            if 3: simulation will run extra long version (a bit excessive but 60000 seconds)
+            else will run medium (1000 seconds)
+
+    Outputs:    
+        final_estimates: euler angle attitude estimates : yaw, pitch, roll
+        residuals: euler angle residuals from true : yaw, pitch, roll
+        convergence: vector of length of final_estimates: 1 means solution did not converge
+                    (this data is an outlier)
+    """
     time_start = 0
     # end of simulation
-    one_period = length_of_sim# 60000
+    if length_flag == 1:
+        one_period = 300
+    elif length_flag == 2:
+        one_period = 10000
+    elif length_flag == 3:
+        one_period = 60000
+    else:
+        one_period = 1000
 
 
     initial_euler = np.array([10, 30, -45])
@@ -194,8 +219,11 @@ def run_attitude_determ(length_of_sim):
 
     # Initialise arrays to store data from nlls
     final_estimates = np.zeros((len(times), 3))
+    residuals = np.zeros((len(times), 3))
     iterations = []
     dops_time = np.zeros((len(times), 4))
+    convergence = []
+    
 
 
     for t in range(len(times)):
@@ -267,6 +295,7 @@ def run_attitude_determ(length_of_sim):
         if not_converged:
             dy_flag = -1
             att_opt, dops, att_store, i, datts, not_converged = nlls_quaternion_weights(observed_vectors, ref_vectors, att_init, dy_flag)
+        convergence.append(not_converged)
         dops_euler = euler2quat(dops)
         final_estimates[t-1] = (quat2euler(att_opt))
         iterations.append(i)
@@ -283,6 +312,9 @@ def run_attitude_determ(length_of_sim):
         # get actual error for 
         print("Final attitude estimation", quat2euler(att_opt))
 
+    residuals = eulers-final_estimates
+    convergence = np.array(convergence)
+
     plt.figure()
     plt.plot(range(len(att_store)), np.full((len(att_store)),eulers[-1,0]), label = "True Yaw")
     plt.plot(range(len(att_store)), np.full((len(att_store)),eulers[-1,1]), label = "True Pitch")
@@ -293,32 +325,33 @@ def run_attitude_determ(length_of_sim):
     plt.legend(loc = 'upper right')
     plt.xlabel("Iterations")
     plt.ylabel("Value (degrees)")
-    plt.savefig("values")
+    plt.savefig("converging_on_values")
 
     plt.figure()
     plt.plot(range(i), datts, label = "Quaternion update value")
     plt.legend()
     plt.xlabel("Iterations")
     plt.ylabel("Value")
-    plt.savefig("converge")
+    plt.savefig("datt_converging")
     
-    plot_attitude_propagation(times, eulers-final_estimates)
-    plot_attitude_propagation(times, final_estimates)
+    plot_attitude_propagation(times, residuals, "residuals")
+    plot_attitude_propagation(times, final_estimates, "determined_attitude")
 
     plt.figure()
     plt.plot(range(len(iterations)), iterations, label = "iterations to converge")
     plt.legend()
     plt.ylabel("Iterations to Converge")
     plt.xlabel("Timesteps")
-    plt.show()
+    plt.savefig("iterations_to_converge")
+
+    return final_estimates, residuals, convergence
 
 
 
 def main():
-    length_of_sim = 1000
-    run_attitude_determ(length_of_sim)
-    
-
+    # length_flag = 1 for short version, length_flag = 2 for long version
+    # run_attitude_determ(length_flag = 1)
+    final_estimates, residuals, convergence = run_attitude_determ(length_flag = 2)
 
 
 if __name__ == '__main__':
