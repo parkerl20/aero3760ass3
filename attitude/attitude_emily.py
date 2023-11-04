@@ -1,66 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.spatial.transform import Rotation
 from pos_sun import *
 from attitude_propagation import *
+from attitude_transforms import *
 '''
 NLLS for Attitude Determination
 '''
-
-
-def euler2quat(x):
-    """
-    Converts Euler angles to quaternion
-    Inputs:
-        x: Euler angles in degrees yaw, pitch, roll
-            in order (z,y,x: yaw, pitch, roll: psi, theta, phi)
-    Outputs:
-        q: normalised quaternion in form w x y z
-    """
-
-    yaw = np.deg2rad(x[0])
-    pitch = np.deg2rad(x[1])
-    roll = np.deg2rad(x[2])
-    qx = np.sin(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) - np.cos(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
-    qy = np.cos(roll/2) * np.sin(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.cos(pitch/2) * np.sin(yaw/2)
-    qz = np.cos(roll/2) * np.cos(pitch/2) * np.sin(yaw/2) - np.sin(roll/2) * np.sin(pitch/2) * np.cos(yaw/2)
-    qw = np.cos(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
-    
-    # normalise
-    quat = np.array([ qw,qx, qy, qz])
-    quat = quat/np.linalg.norm(quat)
-    return quat
-
-def quat2euler(q):
-    """
-    Converts quaternions to Euler angles
-    Inputs:
-        q: normalised quaternion in form w x y z
-        
-    Outputs:
-        x: Euler angles in degrees yaw, pitch roll
-            in order (z,y,x: yaw, pitch, roll: psi, theta, phi)
-        
-    """
-    # roll (x-axis rotation)
-    #x,y,z,w
-    (w, x, y, z) = (q[0], q[1], q[2], q[3])
-
-    t0 = 2 * (w * x + y * z)
-    t1 = 1 - 2 * (x * x + y * y)
-    roll = np.arctan2(t0, t1)
-    t2 = 2 * (w * y - z * x)
-    t2 = 1 if t2 > 1 else t2
-    t2 = -1 if t2 < -1 else t2
-    pitch = np.arcsin(t2)
-    t3 = 2 * (w * z + x * y)
-    t4 = 1 - 2 * (y * y + z * z)
-    yaw = np.arctan2(t3, t4)
-
-    yaw_deg = np.rad2deg(yaw)
-    pitch_deg = np.rad2deg(pitch)
-    roll_deg = np.rad2deg(roll)
-    return np.array([yaw_deg, pitch_deg, roll_deg])
 
 
 def nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init, dy_flag):
@@ -160,16 +105,15 @@ def nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init, dy_flag):
         # Weights matrix based on sensor accuracy
         W = np.eye(vector_obs.size)
         # 36 vector - we have 12 sensors each with x y z accuracy
-        # TODO maybe i can: cannot weight euler angles - can only weight sensor accuracy
-        # Sun sensor accuracy 0.3
+        # Sun sensor accuracy 0.23
         # star tracker 1
-        W[0,0] = 0.3
-        W[1,1] = 0.3
-        W[2,2] = 0.3
+        W[0,0] = 0.23
+        W[1,1] = 0.23
+        W[2,2] = 0.23
 
-        W[3,3] = 0.3
-        W[4,4] = 0.3
-        W[5,5] = 0.3
+        W[3,3] = 0.23
+        W[4,4] = 0.23
+        W[5,5] = 0.23
 
             
         # Dilution of Precision for w,x,y,z of quaternion     
@@ -207,23 +151,6 @@ def nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init, dy_flag):
     return att_opt/np.linalg.norm(att_opt), dops, att_store, i, datts, not_converged
 
 
-def quaternion_multiply(q1, q2):
-    """
-    Multiplies 2  quaternions (do not need to be normalised!):
-    performs q2 rotation first then q1
-
-    """
-    w1, x1, y1, z1 = q1
-    w2, x2, y2, z2 = q2
-
-    w = w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2
-    x = w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2
-    y = w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2
-    z = w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2
-
-    return np.array([w, x, y, z])
-
-
 def get_reference_vectors(num_stars, num_sensors, time):
     # number of sensor measurements at one time interval (redundancy number)
 
@@ -252,7 +179,7 @@ def main():
 
     time_start = 0
     # end of simulation
-    one_period = 500# 60000
+    one_period = 10000# 60000
 
 
     initial_euler = np.array([10, 30, -45])
@@ -280,12 +207,16 @@ def main():
     for t in range(len(times)):
         # generate reference vectors for sun 20 stars and 2 of each sensor
         num_stars = 20
-        n = 2
+        num_sensors = 2
+        freq = 5 # sensors have 5Hz (5 measurements / second)
+        # number of measurements taken each second
+        n = num_sensors*freq
         ref_vectors = get_reference_vectors(num_stars, n,times[t])
 
-        # generate euler angles for sun and star data
-        euler_sun_sensor_errors = np.random.normal(eulers[t-1], 0.01306 , (n,3)) # 0.01306
-        euler_star_tracker_errors =np.random.normal(eulers[t-1], [0.00286,  0.02005, 0.00286,], (n,3)) 
+        # generate euler angles for sun and star data 
+        # errors from sensor specs in degrees
+        euler_sun_sensor_errors = np.random.normal(eulers[t-1], 0.1 , (n,3)) 
+        euler_star_tracker_errors =np.random.normal(eulers[t-1], [0.0023, 0.03, 0.03 ], (n,3)) # yaw, pitch, roll (zyx)
 
         # quat_sun_sensor_errors = np.random.normal(attitude_poses[:,t], 0.0001, (n,4)) # 0.01306
         # quat_star_tracker_errors =np.random.normal(attitude_poses[:,t], 0.0001, (n,4)) 
@@ -318,10 +249,6 @@ def main():
         # generate data for star_tracker sensor
         # count = 2
         for angles in euler_star_tracker_errors:
-
-            psi = np.deg2rad(angles[0])
-            theta = np.deg2rad(angles[1])
-            phi = np.deg2rad(angles[2])
 
             quat = euler2quat(angles)
             qw = quat[0]
