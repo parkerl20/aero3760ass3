@@ -12,8 +12,16 @@ import datetime as dt
 
 
 def main():
+    # Uncomment the second line to run through the calculations instead of just results
+    satellite_simulation(run_sim=0)
+    # satellite_simulation(run_sim=1)
+
+    return 0
+
+
+def satellite_simulation(run_sim):
     # Runs the main orbit code with results being r, v, t of the 4 satellites
-    results = mainOrbit(show_results=0)
+    results = mainOrbit(show_results=1)
     
     # ---------------- Satellite simulation
     # r0 = results[0]['r'][:,0]
@@ -34,11 +42,8 @@ def main():
     #     true_anom,
     #     epoch
     # )
-    
-    mainGee(results, mapping_error=2, run_sim=0)
-
-    return 0
-
+    mapping_error = 2 # From attitude
+    mainGee(results, mapping_error, run_sim)
 
 if __name__ == "__main__":
     main()
