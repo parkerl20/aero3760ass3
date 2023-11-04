@@ -44,8 +44,10 @@ def build_stereographic_projection(location):
 def findStarSunPositions(num_stars, time):
     """
     finds sun and num_stars position in metres at given day and hour (of october 2023)
-
+    
+        time (float): An offset 2023 Julian Date Time
     """
+    # num stars == 20
     # Julian Date Time
 
     ts = load.timescale()

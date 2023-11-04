@@ -30,24 +30,25 @@ def satellite_simulation(run_sim):
     results = mainOrbit(show_results=1)
     
     # ---------------- Satellite simulation
-    # r0 = results[0]['r'][:,0]
-    # v0 = results[0]['v'][:,0]
+    r0 = results[0]['r'][:,0]
+    v0 = results[0]['v'][:,0]
     
-    # a,e,i,RAAN, arg_p, true_anom = ot.ECI_to_elements(r0, v0, const.MU_EARTH).flatten()
+    a,e,i,RAAN, arg_p, true_anom = ot.ECI_to_elements(r0, v0, const.MU_EARTH).flatten()
 
-    # epoch = dt.datetime(2023, 1, 1)
-    # simulation_time = 1000
+    epoch = dt.datetime(2023, 1, 1)
+    simulation_time = 1000
 
-    # orbit_simulation(
-    #     simulation_time,
-    #     a,
-    #     e,
-    #     i,
-    #     RAAN,
-    #     arg_p,
-    #     true_anom,
-    #     epoch
-    # )
+    orbit_simulation(
+        simulation_time,
+        a,
+        e,
+        i,
+        RAAN,
+        arg_p,
+        true_anom,
+        epoch
+    )
+    
     mapping_error = 2 # From attitude
     mainGee(results, mapping_error, run_sim)
 

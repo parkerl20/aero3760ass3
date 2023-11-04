@@ -54,16 +54,6 @@ def orbit_simulation(
     
     propagation_time = satellite.period
     
-    # Add attitude state
-    # satellite.init_v_eci = np.concatenate(
-    #     satellite.init_v_eci.flatten(),
-    #     np.array([1, 0, 0.045, 0.015]) # Quaternions of Euler Angles (10, 30, -45)
-    # )
-    
-    # satellite.init_v_eci = satellite.init_v_eci.reshape(-1, 1)
-    # satellite.reset()
-    # satellite.set_dynamics(orbit_dynamics)
-    
     
     # ---------------- Mount sensors to satellite
     # Simulates Rakon GNSS reciever DB
@@ -80,11 +70,19 @@ def orbit_simulation(
         "star_tracker",
         np.zeros(3,),       # place holder
         star_tracker_simulator,
-        frequency=1
+        frequency=5
+    )
+    
+    sun_sensor = sensor.SatelliteSensor(
+        "sun_sensor",
+        np.zeros(3,),       # place holder
+        sun_sensor_simulator,
+        frequency=5
     )
     
     satellite.attach_sensor(gnss_reciever)
     satellite.attach_sensor(star_tracker)
+    satellite.attach_sensor(sun_sensor)
     
     # ------------------ Add algorithms
     initial_state = np.concatenate(
@@ -594,17 +592,16 @@ def sun_sensor_simulator(
 ) -> bool:
     """Simulates the sun sensor on a satellite"""
     # Get ECI position estimation
-    position_ekf = satellite.algorithms["OD EKF"]
+    attitude_quart = satellite.current_attitude
     
-    ekf_dt = satellite.current_time - position_ekf.t_last
-    eci_est = position_ekf.algorithm.predict_state(
-        f_args=(
-            position_ekf.algorithm.get_state()[:3],
-            ekf_dt
-        )
-    )
+    # 0.1 deg error std
     
-    current_epoch = satellite.epoch + dt.timedelta(seconds=satellite.current_time)
+    # Convert to euler angles
+    euler = ot.quat2euler(attitude_quart.flatten())
+    euler += np.random.normal(0, 0.1, 3)
+    
+    sun_sensor.mesurement = euler
+    return True
 
 def star_tracker_simulator(
     star_tracker: sensor.SatelliteSensor,
@@ -613,8 +610,23 @@ def star_tracker_simulator(
     v: np.ndarray
 ) -> bool:
     """Simulates the star tracker on a satellite"""
-    # TODO
-    pass
+    attitude_quart = satellite.current_attitude
+    
+    yaw_noise = 0.03
+    pitch_noise = 0.002
+    roll_noise = 0.002
+    
+    # Convert to euler angles
+    euler = ot.quat2euler(attitude_quart.flatten())
+    
+    # Apply noise
+    euler[0] += np.random.normal(0, yaw_noise)
+    euler[1] += np.random.normal(0, pitch_noise)
+    euler[2] += np.random.normal(0, roll_noise)
+
+    star_tracker.mesurement = euler
+    
+    return True
 
 def calculate_rms(
     data: np.array

@@ -618,3 +618,33 @@ def ECI_to_azimuth_error(
 
     return 0.0001, 0.0002
 
+def quat2euler(q):
+    """
+    Converts quaternions to Euler angles
+    Inputs:
+        q: normalised quaternion in form w x y z
+        
+    Outputs:
+        x: Euler angles in degrees yaw, pitch roll
+            in order (z,y,x: yaw, pitch, roll: psi, theta, phi)
+        
+    """
+    # roll (x-axis rotation)
+    #x,y,z,w
+    (w, x, y, z) = q
+
+    t0 = 2 * (w * x + y * z)
+    t1 = 1 - 2 * (x * x + y * y)
+    roll = np.arctan2(t0, t1)
+    t2 = 2 * (w * y - z * x)
+    t2 = 1 if t2 > 1 else t2
+    t2 = -1 if t2 < -1 else t2
+    pitch = np.arcsin(t2)
+    t3 = 2 * (w * z + x * y)
+    t4 = 1 - 2 * (y * y + z * z)
+    yaw = np.arctan2(t3, t4)
+
+    yaw_deg = np.rad2deg(yaw)
+    pitch_deg = np.rad2deg(pitch)
+    roll_deg = np.rad2deg(roll)
+    return np.array([yaw_deg, pitch_deg, roll_deg])

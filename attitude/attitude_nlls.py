@@ -153,6 +153,8 @@ def nlls_quaternion_weights(vector_obs, ref_vectors_lgcv, att_init, dy_flag):
 
 def get_reference_vectors(num_stars, num_sensors, time):
     # number of sensor measurements at one time interval (redundancy number)
+    # num_stars == 20
+    # time is offset from 2023 Julian Date Time
 
     stars, sun = findStarSunPositions(num_stars*num_sensors,time)
 
@@ -356,5 +358,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
