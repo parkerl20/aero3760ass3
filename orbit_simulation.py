@@ -127,7 +127,7 @@ def orbit_simulation(
     raw_r = [[], [], []]
     time_steps = []    
     gnss_times = []
-    mappings = [[], [], []]
+    mappings = [[], [], [], [], []]
     
     
     for r_true, v_true, attitude_true, t in satellite:
@@ -164,11 +164,11 @@ def orbit_simulation(
         # )
         
         # TODO: Add when attitude is done
-        in_track, cross_track, radial = mapping_budget(
+        in_track, cross_track, radial, azimuth, nadir, = mapping_budget(
             ekf_r,
             r_true,
             v_true,
-            attitude_true,      # needs to be converted to euhler (in quarternions)
+            attitude_true,  # needs to be converted to euler (currently in quarternions)
             att_estimation
         )
         
@@ -181,42 +181,18 @@ def orbit_simulation(
         v_residuals[2].append(v_true[2] - ekf_v[2])
         
         time_steps.append(t)
-        
-        # Mapping accuracies
-        in_track, cross_track, radial = ot.ECI_to_mapping_error(
-            ekf_r,
-            r_true,
-            v_true
-        )
+    
         # print("Current attitude: ", satellite.current_attitude)
         att_residuals[0].append(satellite.current_attitude[0])
         att_residuals[1].append(satellite.current_attitude[1])
         att_residuals[2].append(satellite.current_attitude[2])
         att_residuals[3].append(satellite.current_attitude[3])
-        
-        R_H = np.linalg.norm(ekf_r) - const.R_EARTH
-        R_T = const.R_EARTH
-        R_S = const.R_EARTH + R_H
-        
-        eta_rad = np.arcsin((1/2) * (const.R_EARTH / R_S))
-        eta_deg = np.rad2deg(eta_rad)
-        
-        lam_deg = 90 - elevation_deg - eta_deg
-        lam_rad = np.deg2rad(lam_deg)
-        
-        phi_deg = 90
-        phi_rad = np.deg2rad(phi_deg)
-        
-        H_mapping = np.arcsin(np.sin(lam_rad) * np.sin(phi_rad))
-        G_mapping = np.arcsin(np.sin(lam_rad) * np.cos(phi_rad))
-        
-        intrack_error = in_track * R_T / R_S * np.cos(H_mapping)
-        crosstrack_error = cross_track * R_T / R_S * np.cos(G_mapping)
-        radial_error = radial * np.sin(eta_rad) / np.sin(elevation_deg)
-        
-        mappings[0].append(intrack_error)
-        mappings[1].append(crosstrack_error)
-        mappings[2].append(radial_error)
+
+        mappings[0].append(in_track)
+        mappings[1].append(cross_track)
+        mappings[2].append(radial)
+        mappings[3].append(azimuth)
+        mappings[4].append(nadir)
         
         
     create_od_results(
@@ -261,6 +237,26 @@ def orbit_simulation(
     
     radial_fig.tight_layout()
     radial_fig.savefig("figures/od_mapping_radial.png")
+
+    in_track_fig, in_track_ax = plt.subplots()
+    in_track_ax.plot(time_steps, mappings[3])
+    
+    in_track_ax.set_title("Azimuth Mapping Error")
+    in_track_ax.set_xlabel("Time (s)")
+    in_track_ax.set_ylabel("Error (m)")
+    
+    in_track_fig.tight_layout()
+    in_track_fig.savefig("figures/att_mapping_azimuth.png")
+
+    in_track_fig, in_track_ax = plt.subplots()
+    in_track_ax.plot(time_steps, mappings[4])
+    
+    in_track_ax.set_title("Nadir Mapping Error")
+    in_track_ax.set_xlabel("Time (s)")
+    in_track_ax.set_ylabel("Error (m)")
+    
+    in_track_fig.tight_layout()
+    in_track_fig.savefig("figures/att_mapping_nadir.png")
     
     plt.show()
     
@@ -460,10 +456,9 @@ def create_att_results( # ------------------------------------------------------
     """
     """
     startup_plotting()
-    print("Current Attitude:", att_residuals)
-
-    print("Size of time:", len(time_steps))
-    print("Size of att_residuals[0]:", len(att_residuals[0]))
+    # print("Current Attitude:", att_residuals)
+    # print("Size of time:", len(time_steps))
+    # print("Size of att_residuals[0]:", len(att_residuals[0]))
 
     attw_fig, attw_ax = plt.subplots()
     attw_ax.plot(time_steps[1:], att_residuals[0][1:])
@@ -624,10 +619,18 @@ def calculate_rms(
     rms = math.sqrt(sum_of_squares / n)
     return rms
 
-def mapping_budget(r_eci, r_true, v_true, euler_truths, euler_estimate):
+def mapping_budget(
+    r_eci, 
+    r_true, 
+    v_true, 
+    att_true, 
+    att_estimate
+):
+    
+    # print("att_true:", att_true)
 
     delta_I, delta_C, delta_R = ot.ECI_to_mapping_error(r_eci, r_true, v_true)
-    delta_azimuth, delta_elevation = ot.ECI_to_azimuth_error(euler_truths, euler_estimate)
+    delta_azimuth, delta_elevation = ot.ECI_to_azimuth_error(att_true, att_estimate)
 
 
     R_E = 6371  # km
@@ -679,7 +682,7 @@ def mapping_budget(r_eci, r_true, v_true, euler_truths, euler_estimate):
     rms = calculate_rms(data)
 
     # return rms
-    return intrack_error, crosstrack_error, radial_error
+    return intrack_error, crosstrack_error, radial_error, azimuth_error, nadir_error
 
 def attitude_NLLS_algo_function(
     time: float,
