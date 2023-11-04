@@ -46,29 +46,6 @@ def calculateSpatialRes():
 
 
 
-# def nadirMappingError(std_dev_x, std_dev_y, num_points):
-
-#     std_dev_x *= 1000 # Convert from km to m
-#     std_dev_y *= 1000 # Convert from km to m
-
-#     # Set the mean and standard deviations
-#     mean = 0
-
-#     # Generate random data points
-#     east_errors = np.random.normal(mean, std_dev_x, num_points)
-#     north_errors = np.random.normal(mean, std_dev_y, num_points)
-
-#     # Create the plot
-#     plt.figure(figsize=(8, 6))
-#     plt.scatter(east_errors, north_errors, facecolors='none', edgecolors='b')
-#     plt.axhline(y=0, color='k', linestyle='--', linewidth=0.5)
-#     plt.axvline(x=0, color='k', linestyle='--', linewidth=0.5)
-#     plt.title('Nadir Mapping Errors', fontsize=16)
-#     plt.xlabel('East Error (m)', fontsize=12)
-#     plt.ylabel('North Error (m)', fontsize=12)
-#     plt.grid(True, linestyle='--', alpha=0.5)
-#     plt.show()
-
 
 def nadirMappingError(std_dev_x, std_dev_y, num_points):
 
@@ -127,23 +104,6 @@ def swathEdgeMappingError(std_dev_x, std_dev_y, num_points):
     plt.savefig('../figures/rs_swath_error.png')
 
 
-def singlePointError(std_dev, size):
-
-    # Generating data with normal distribution and some noise
-    mean = 0
-    data = np.random.normal(mean, std_dev, size)
-    noise = np.random.normal(0, 1, size)
-    data_with_noise = data + noise
-
-    # Plotting the histogram
-    plt.figure(figsize=(8, 6))
-    plt.hist(data_with_noise, bins=30, density=True, alpha=0.7, color='g')
-    plt.title('Monte Carlo on Mapping Accuracy Confidence on One Point', fontsize=16)
-    plt.xlabel('Mapping Accuracy Error (m)', fontsize=12)
-    plt.ylabel('Frequency', fontsize=12)
-    plt.grid(axis='y', alpha=0.75)
-    plt.show()
-
 
 
 def main():
@@ -155,10 +115,14 @@ def main():
     spatialRes = calculateSpatialRes()
     print("Spatial Resolution: ", spatialRes)
 
-    std_dev_x, std_dev_y, std_dev_radial = mapping_error.calculateMappingError()
-    # singlePointError(std_dev_radial, observations)
-    nadirMappingError(std_dev_x, std_dev_y, observations)
-    swathEdgeMappingError(std_dev_x, std_dev_y, observations)
+    roll_residual_std = 0.01616645
+    pitch_residual_std = 0.0134385
+    yaw_residual_std = 0.020882695
+    cross_track_error = 1
+
+
+    nadirMappingError(pitch_residual_std, yaw_residual_std, observations)
+    swathEdgeMappingError(cross_track_error, cross_track_error, observations)
 
     
 
