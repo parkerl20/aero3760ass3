@@ -9,12 +9,18 @@ from orbit.mainOrbit import mainOrbit
 from orbit_simulation import orbit_simulation
 from gee.mainGee import mainGee
 import datetime as dt
+from attitude.attitude_nlls import run_attitude_determ
 
 
 def main():
     # Uncomment the second line to run through the calculations instead of just results
     satellite_simulation(run_sim=0)
     # satellite_simulation(run_sim=1)
+
+    # length_flag = 1 for short version, length_flag = 2 for long version
+    run_attitude_determ(length_flag = 1)
+    # run_attitude_determ(length_flag = 2))
+
 
     return 0
 
