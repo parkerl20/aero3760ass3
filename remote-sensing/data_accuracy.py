@@ -115,9 +115,14 @@ def main():
     spatialRes = calculateSpatialRes()
     print("Spatial Resolution: ", spatialRes)
 
-    std_dev_x, std_dev_y, std_dev_radial = mapping_error.calculateMappingError()
-    nadirMappingError(std_dev_x, std_dev_y, observations)
-    swathEdgeMappingError(std_dev_x, std_dev_y, observations)
+    roll_residual_std = 0.01616645
+    pitch_residual_std = 0.0134385
+    yaw_residual_std = 0.020882695
+    cross_track_error = 1
+
+
+    nadirMappingError(pitch_residual_std, yaw_residual_std, observations)
+    swathEdgeMappingError(cross_track_error, cross_track_error, observations)
 
     
 
