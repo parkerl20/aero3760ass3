@@ -153,7 +153,7 @@ def st_main():
 
     for i in range(0, len(lon_lat)):
 
-        rectangle_bounds = [lon_lat[i][0], lon_lat[i][1], lon_lat[i][0] + 6.2, lon_lat[i][1] - 6.2] # Scale 800
+        rectangle_bounds = [lon_lat[i][0] - 3.1, lon_lat[i][1] + 3.1, lon_lat[i][0] + 3.1, lon_lat[i][1] - 3.1] # Scale 800
         # rectangle_bounds = [141.115256 + 2*i, -28.356159 - 1*i, 147.315256 + 2*i, -34.956159 - 1*i] # Scale 800
 
         # rectangle_bounds = [151.115256, -33.756159, 151.315256, -33.956159] # Centered at the Opera House, scale 60
