@@ -60,7 +60,7 @@ class SystemPlotter():
             system_ax.plot(r[0], r[1], color=orbit.body.colour, label=orbit.body.name)
         
         # Plot formatting
-        system_ax.set_title(f"{self.system.name} Orbital System")
+        system_ax.set_title(f"{self.system.name} Orbital System", fontsize=30)
         
         unit = "km" if use_km else "m"
         system_ax.set_xlabel(f"p ({unit})", fontname="Times New Roman", fontweight="bold", fontsize=12)
@@ -228,6 +228,10 @@ class SystemPlotter():
         # Set up figure
         track_fig = plt.figure("Groundtracks")
         track_ax = track_fig.add_subplot()
+
+        # plt.rcParams.update({'font.size': 24})
+        # plt.rcParams.update({'lines.linewidth': 2})
+
         
         if map_img is not None:
             img = plt.imread(map_img)
@@ -236,8 +240,10 @@ class SystemPlotter():
         x_ticks = [-180 + x for x in range(0, 380, 30)]
         y_ticks = [-90 + x for x in range(0, 195, 30)]
         
-        track_ax.set_xlabel("Longitude")
-        track_ax.set_ylabel("Latitude")
+        track_ax.set_xlabel("Longitude", fontsize=24)
+        track_ax.set_ylabel("Latitude", fontsize=24)
+        track_ax.tick_params(axis='both', which='major', labelsize=18)
+
         track_ax.set_xticks(x_ticks)
         track_ax.set_yticks(y_ticks)
             
@@ -265,7 +271,7 @@ class SystemPlotter():
                 lat,
                 label=orbit.name,
                 color=orbit.colour,
-                linewidth=0.5
+                linewidth=1.5
             )
         
         track_ax.legend()

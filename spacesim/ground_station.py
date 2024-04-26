@@ -119,7 +119,7 @@ class OrbitObservatory():
                 rng += np.random.normal(0, rng_error)
                 
             # check visbility flag, set accordingly
-            if not visible_flag and elev > 0:
+            if not visible_flag and elev > 10:
                 # visibility period started
                 visible_flag = True
                 visible_start = orbit.epoch + dt.timedelta(seconds=t[i])
